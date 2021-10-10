@@ -1,5 +1,5 @@
 [package]
-name = "rlane-picosystem-games"
+name = "rlane_picosystem_games"
 version = "0.1.0"
 edition = "2018"
 resolver = "2"

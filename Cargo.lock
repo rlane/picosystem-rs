@@ -609,7 +609,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rlane-picosystem-games"
+name = "rlane_picosystem_games"
 version = "0.1.0"
 dependencies = [
  "cortex-m 0.7.3",
