@@ -30,6 +30,10 @@ usb-device= "0.2.8"
 usbd-hid = "0.5.1"
 usbd-serial = "0.1.1"
 log = "0.4"
+display-interface = "0.4"
+display-interface-spi = "0.4"
+embedded-graphics = "0.7"
+st7789 = "0.6"
 
 [features]
 default = [
