@@ -66,7 +66,18 @@ unsafe fn USBCTRL_IRQ() {
 
     if usb_dev.poll(&mut [serial]) {
         let mut buf = [0u8; 64];
-        let _ = serial.read(&mut buf);
+        match serial.read(&mut buf) {
+            Ok(0) => {}
+            Ok(count) => {
+                buf.iter_mut().take(count).for_each(|b| {
+                    if *b == 0 {
+                        log::info!("Entering flash mode");
+                        hal::rom_data::reset_to_usb_boot(0, 0);
+                    }
+                });
+            }
+            Err(_) => {}
+        }
     }
 }
 
