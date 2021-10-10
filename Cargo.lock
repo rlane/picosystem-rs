@@ -568,12 +568,12 @@ checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
 [[package]]
 name = "pico"
 version = "0.1.0"
-source = "git+https://github.com/rp-rs/rp-hal.git#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
+source = "git+https://github.com/rp-rs/rp-hal.git?branch=main#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
 dependencies = [
  "cortex-m 0.7.3",
  "cortex-m-rt",
  "embedded-time",
- "rp2040-hal 0.3.0 (git+https://github.com/rp-rs/rp-hal.git)",
+ "rp2040-hal",
  "usb-device",
  "usbd-hid",
  "usbd-serial",
@@ -695,7 +695,7 @@ dependencies = [
  "panic-probe",
  "pico",
  "rp2040-boot2",
- "rp2040-hal 0.3.0 (git+https://github.com/rp-rs/rp-hal?branch=main)",
+ "rp2040-hal",
  "st7789",
  "usb-device",
  "usbd-hid",
@@ -713,26 +713,7 @@ dependencies = [
 [[package]]
 name = "rp2040-hal"
 version = "0.3.0"
-source = "git+https://github.com/rp-rs/rp-hal?branch=main#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
-dependencies = [
- "cortex-m 0.7.3",
- "embedded-hal",
- "embedded-time",
- "itertools",
- "nb 1.0.0",
- "paste",
- "pio",
- "rand_core",
- "rp2040-pac",
- "usb-device",
- "vcell",
- "void",
-]
-
-[[package]]
-name = "rp2040-hal"
-version = "0.3.0"
-source = "git+https://github.com/rp-rs/rp-hal.git#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
+source = "git+https://github.com/rp-rs/rp-hal.git?branch=main#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
 dependencies = [
  "cortex-m 0.7.3",
  "embedded-hal",

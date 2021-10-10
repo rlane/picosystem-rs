@@ -11,14 +11,12 @@ use pico::hal::prelude::*;
 use rlane_picosystem_games as rpsg;
 use rpsg::usb_logger;
 
-use display_interface_spi::SPIInterface;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
-use embedded_hal::spi::MODE_0;
 use hal::gpio::FunctionSpi;
-use hal::spi::Spi;
-use st7789::{Orientation, ST7789};
+
+use rp2040_hal::gpio::Pins;
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
@@ -58,7 +56,7 @@ fn main() -> ! {
     );
 
     let sio = hal::sio::Sio::new(pac.SIO);
-    let pins = pico::Pins::new(
+    let pins = Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
         sio.gpio_bank0,
@@ -66,25 +64,23 @@ fn main() -> ! {
     );
 
     let mut blue_led_pin = pins.gpio15.into_push_pull_output();
-    let mut backlight_pin = pins.gpio12.into_push_pull_output();
-    let mut lcd_cs_pin = pins.gpio5.into_push_pull_output();
+    let backlight_pin = pins.gpio12;
+    let lcd_cs_pin = pins.gpio5;
     let _lcd_sck_pin = pins.gpio6.into_mode::<FunctionSpi>();
     let _lcd_mosi_pin = pins.gpio7.into_mode::<FunctionSpi>();
-    let mut lcd_vsync_pin = pins.gpio8.into_push_pull_output();
-    let mut lcd_dc_pin = pins.gpio9.into_push_pull_output();
-    let mut lcd_reset_pin = pins.gpio4.into_push_pull_output();
+    let _lcd_vsync_pin = pins.gpio8.into_push_pull_output();
+    let lcd_dc_pin = pins.gpio9;
+    let lcd_reset_pin = pins.gpio4;
 
-    let spi = Spi::<_, _, 8>::new(pac.SPI0).init(
-        &mut pac.RESETS,
-        125_000_000u32.Hz(),
-        16_000_000u32.Hz(),
-        &MODE_0,
+    let mut display = rpsg::display::init(
+        backlight_pin.into(),
+        lcd_dc_pin.into(),
+        lcd_cs_pin.into(),
+        lcd_reset_pin.into(),
+        /*spi_device=*/ pac.SPI0,
+        /*resets=*/ &mut pac.RESETS,
+        /*delay_source=*/ &mut delay,
     );
-
-    info!("Initializing display");
-    let di = SPIInterface::new(spi, lcd_dc_pin, lcd_cs_pin);
-    let mut display = ST7789::new(di, lcd_reset_pin, 240, 240);
-    display.init(&mut delay).unwrap();
 
     info!("Drawing");
     let circle1 =
@@ -94,8 +90,6 @@ fn main() -> ! {
     display.clear(Rgb565::BLACK).unwrap();
     circle1.draw(&mut display).unwrap();
     circle2.draw(&mut display).unwrap();
-
-    backlight_pin.set_high().unwrap();
 
     info!("Finished initialization");
     let mut i = 0;
