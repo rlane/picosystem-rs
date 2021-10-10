@@ -1,9 +1,13 @@
 #![no_std]
 #![no_main]
 
+use core::fmt;
+use core::fmt::Write;
 use cortex_m_rt::entry;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
+use log::info;
+use log::LevelFilter;
 use pico::hal;
 use pico::hal::pac;
 use pico::hal::pac::interrupt;
@@ -28,6 +32,8 @@ static mut USB_BUS: Option<UsbBusAllocator<hal::usb::UsbBus>> = None;
 /// The USB Serial Device Driver (shared with the interrupt).
 static mut USB_SERIAL: Option<SerialPort<hal::usb::UsbBus>> = None;
 
+static LOGGER: UsbSerialLogger = UsbSerialLogger;
+
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -49,7 +55,7 @@ fn main() -> ! {
 
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
 
-    setup_usb(
+    setup_usb_logging(
         pac.USBCTRL_REGS,
         pac.USBCTRL_DPRAM,
         &mut pac.RESETS,
@@ -66,16 +72,19 @@ fn main() -> ! {
 
     let mut led_pin = pins.gpio15.into_push_pull_output();
 
+    let mut i = 0;
     loop {
-        write_to_serial(b"Hello!\r\n");
+        info!("Info log {}", i);
+        log::error!("Error log");
         led_pin.set_high().unwrap();
         delay.delay_ms(500);
         led_pin.set_low().unwrap();
         delay.delay_ms(500);
+        i += 1;
     }
 }
 
-fn setup_usb(
+fn setup_usb_logging(
     regs: pac::USBCTRL_REGS,
     dpram: pac::USBCTRL_DPRAM,
     resets: &mut pac::RESETS,
@@ -102,6 +111,12 @@ fn setup_usb(
         USB_SERIAL = Some(serial);
     }
 
+    unsafe {
+        log::set_logger_racy(&LOGGER)
+            .map(|()| log::set_max_level(LevelFilter::Info))
+            .unwrap();
+    }
+
     // Enable the USB interrupt
     unsafe {
         pac::NVIC::unmask(hal::pac::Interrupt::USBCTRL_IRQ);
@@ -126,5 +141,33 @@ unsafe fn USBCTRL_IRQ() {
     if usb_dev.poll(&mut [serial]) {
         let mut buf = [0u8; 64];
         let _ = serial.read(&mut buf);
+    }
+}
+
+use log::{Level, Metadata, Record};
+
+struct UsbSerialLogger;
+
+impl log::Log for UsbSerialLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= Level::Info
+    }
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            let mut writer = UsbSerialWriter;
+            write!(&mut writer, "{} - {}\r\n", record.level(), record.args()).unwrap();
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+struct UsbSerialWriter;
+
+impl fmt::Write for UsbSerialWriter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        write_to_serial(s.as_bytes());
+        Ok(())
     }
 }

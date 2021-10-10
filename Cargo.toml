@@ -29,6 +29,7 @@ rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", branch="main", features=
 usb-device= "0.2.8"
 usbd-hid = "0.5.1"
 usbd-serial = "0.1.1"
+log = "0.4"
 
 [features]
 default = [
