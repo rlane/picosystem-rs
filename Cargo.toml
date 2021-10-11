@@ -21,8 +21,6 @@ defmt-rtt = "0.2.0"
 embedded-hal = { version = "0.2.5", features=["unproven"] }
 embedded-time = "0.12.0"
 nb = "1.0"
-panic-halt= "0.2.0"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 pico = { git = "https://github.com/rp-rs/rp-hal.git", branch="main" }
 rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch="main" }
 rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", branch="main", features=["rt"] }

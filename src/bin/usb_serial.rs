@@ -11,10 +11,6 @@ use pico::hal::prelude::*;
 use rlane_picosystem_games as rpsg;
 use rpsg::usb_logger;
 
-// Ensure we halt the program on panic (if we don't mention this crate it won't
-// be linked)
-use panic_halt as _;
-
 #[link_section = ".boot2"]
 #[used]
 pub static BOOT_LOADER: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
