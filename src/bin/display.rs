@@ -14,7 +14,6 @@ use rpsg::usb_logger;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
-use hal::gpio::FunctionSpi;
 
 use rp2040_hal::gpio::Pins;
 
@@ -64,19 +63,15 @@ fn main() -> ! {
     );
 
     let mut blue_led_pin = pins.gpio15.into_push_pull_output();
-    let backlight_pin = pins.gpio12;
-    let lcd_cs_pin = pins.gpio5;
-    let _lcd_sck_pin = pins.gpio6.into_mode::<FunctionSpi>();
-    let _lcd_mosi_pin = pins.gpio7.into_mode::<FunctionSpi>();
-    let _lcd_vsync_pin = pins.gpio8.into_push_pull_output();
-    let lcd_dc_pin = pins.gpio9;
-    let lcd_reset_pin = pins.gpio4;
 
     let mut display = rpsg::display::Display::new(
-        backlight_pin.into(),
-        lcd_dc_pin.into(),
-        lcd_cs_pin.into(),
-        lcd_reset_pin.into(),
+        /*backlight_pin=*/ pins.gpio12.into(),
+        /*lcd_dc_pin=*/ pins.gpio9.into(),
+        /*lcd_cs_pin=*/ pins.gpio5.into(),
+        /*lcd_sck_pin=*/ pins.gpio6.into(),
+        /*lcd_mosi_pin=*/ pins.gpio7.into(),
+        /*lcd_vsync_pin=*/ pins.gpio8.into(),
+        /*lcd_reset_pin=*/ pins.gpio4.into(),
         /*spi_device=*/ pac.SPI0,
         /*resets=*/ &mut pac.RESETS,
         /*delay_source=*/ &mut delay,

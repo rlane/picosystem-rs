@@ -7,7 +7,9 @@ use hal::pac;
 use hal::spi::Spi;
 use log::info;
 use rp2040_hal as hal;
+use rp2040_hal::gpio::dynpin::DynFunction;
 use rp2040_hal::gpio::dynpin::DynPin;
+use rp2040_hal::gpio::dynpin::DynPinMode;
 use st7789::ST7789;
 
 pub type RealDisplay =
@@ -23,6 +25,9 @@ impl Display {
         mut backlight_pin: DynPin,
         mut lcd_dc_pin: DynPin,
         mut lcd_cs_pin: DynPin,
+        mut lcd_sck_pin: DynPin,
+        mut lcd_mosi_pin: DynPin,
+        mut lcd_vsync_pin: DynPin,
         mut lcd_reset_pin: DynPin,
         spi_device: pac::SPI0,
         resets: &mut pac::RESETS,
@@ -32,6 +37,13 @@ impl Display {
         backlight_pin.into_push_pull_output();
         lcd_dc_pin.into_push_pull_output();
         lcd_cs_pin.into_push_pull_output();
+        lcd_sck_pin
+            .try_into_mode(DynPinMode::Function(DynFunction::Spi))
+            .unwrap();
+        lcd_mosi_pin
+            .try_into_mode(DynPinMode::Function(DynFunction::Spi))
+            .unwrap();
+        lcd_vsync_pin.into_floating_input();
         lcd_reset_pin.into_push_pull_output();
         let spi = Spi::<_, _, 8>::new(spi_device).init(
             resets,
