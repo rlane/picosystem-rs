@@ -34,7 +34,6 @@ impl Hardware {
 
         let mut delay =
             cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
-        delay.delay_ms(200);
 
         usb_logger::init(
             pac.USBCTRL_REGS,
@@ -42,6 +41,8 @@ impl Hardware {
             &mut pac.RESETS,
             clocks.usb_clock,
         );
+        delay.delay_ms(1500);
+        log::info!("Logging initialized");
 
         let sio = hal::sio::Sio::new(pac.SIO);
         let pins = Pins::new(
