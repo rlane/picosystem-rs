@@ -72,7 +72,7 @@ fn main() -> ! {
     let lcd_dc_pin = pins.gpio9;
     let lcd_reset_pin = pins.gpio4;
 
-    let mut display = rpsg::display::init(
+    let mut display = rpsg::display::Display::new(
         backlight_pin.into(),
         lcd_dc_pin.into(),
         lcd_cs_pin.into(),
@@ -87,9 +87,10 @@ fn main() -> ! {
         Circle::new(Point::new(128, 64), 64).into_styled(PrimitiveStyle::with_fill(Rgb565::RED));
     let circle2 = Circle::new(Point::new(64, 64), 64)
         .into_styled(PrimitiveStyle::with_stroke(Rgb565::GREEN, 1));
-    display.clear(Rgb565::BLACK).unwrap();
-    circle1.draw(&mut display).unwrap();
-    circle2.draw(&mut display).unwrap();
+    display.draw_target().clear(Rgb565::BLACK).unwrap();
+    circle1.draw(display.draw_target()).unwrap();
+    circle2.draw(display.draw_target()).unwrap();
+    display.enable_backlight();
 
     info!("Finished initialization");
     let mut i = 0;
