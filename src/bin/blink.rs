@@ -2,10 +2,9 @@
 #![no_main]
 
 use cortex_m_rt::entry;
-use defmt::*;
-use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::fixed_point::FixedPoint;
+use log::info;
 use rlane_picosystem_games as _;
 use rp2040_hal as hal;
 

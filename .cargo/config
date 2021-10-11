@@ -3,7 +3,6 @@ rustflags = [
   "-C", "linker=flip-link",
   "-C", "link-arg=--nmagic",
   "-C", "link-arg=-Tlink.x",
-  "-C", "link-arg=-Tdefmt.x",
 
   # Code-size optimizations.
   #   trap unreachable can save a lot of space, but requires nightly compiler.
