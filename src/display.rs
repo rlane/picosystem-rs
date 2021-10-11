@@ -58,7 +58,7 @@ impl Display {
         let spi = Spi::<_, _, 8>::new(spi_device).init(
             resets,
             125_000_000u32.Hz(),
-            16_000_000u32.Hz(),
+            62_000_000u32.Hz(),
             &MODE_0,
         );
         let di = SPIInterface::new(spi, lcd_dc_pin, lcd_cs_pin);
