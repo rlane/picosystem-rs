@@ -67,6 +67,9 @@ impl Hardware {
             /*delay_source=*/ &mut delay,
         );
 
+        pac.RESETS.reset.modify(|_, w| w.dma().clear_bit());
+        while pac.RESETS.reset_done.read().dma().bit_is_clear() {}
+
         Hardware {
             display,
             blue_led_pin: blue_led_pin.into(),
