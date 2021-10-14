@@ -1,3 +1,4 @@
+use crate::dma;
 use core::convert::TryInto;
 use display_interface_spi::SPIInterfaceNoCS;
 use embedded_graphics::draw_target::DrawTarget;
@@ -82,17 +83,13 @@ impl Display {
 
     pub fn flush(&mut self) {
         unsafe {
-            let dma_base = 0x50000000 as *mut u32;
             let spi0_tx = 0x4003c000 + 8;
-            let ch0_read_addr = dma_base.offset(0);
-            let ch0_write_addr = dma_base.offset(1);
-            let ch0_trans_count = dma_base.offset(2);
-            let ch0_ctrl_trig = dma_base.offset(3);
-            ch0_read_addr.write_volatile(self.framebuffer.as_ptr() as u32);
-            ch0_write_addr.write_volatile(spi0_tx);
-            ch0_trans_count.write_volatile((WIDTH * HEIGHT * 2) as u32);
-            ch0_ctrl_trig.write_volatile((1 << 0) | (0 << 2) | (1 << 4) | (16 << 15));
-            while ch0_trans_count.read_volatile() > 0 {}
+            dma::copy_to_spi(
+                self.framebuffer.as_ptr() as u32,
+                spi0_tx,
+                1,
+                (WIDTH * HEIGHT * 2) as u32,
+            );
         }
     }
 
@@ -122,6 +119,26 @@ impl DrawTarget for Display {
             }
         }
 
+        Ok(())
+    }
+
+    fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
+        let color = RawU16::from(color).into_inner().to_be();
+        unsafe {
+            dma::set_mem(
+                &color as *const u16 as u32,
+                self.framebuffer.as_ptr() as u32,
+                2,
+                (WIDTH * HEIGHT) as u32,
+            );
+        }
+        if self.framebuffer[0] != color {
+            log::info!(
+                "incorrect framebuffer[0], expected {} got {}",
+                color,
+                self.framebuffer[0]
+            );
+        }
         Ok(())
     }
 }
