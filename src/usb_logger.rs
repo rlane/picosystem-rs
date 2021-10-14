@@ -1,3 +1,4 @@
+use crate::time;
 use core::fmt;
 use core::fmt::Write;
 use log::LevelFilter;
@@ -92,7 +93,14 @@ impl log::Log for UsbSerialLogger {
         if self.enabled(record.metadata()) {
             let mut writer = UsbSerialWriter;
             pac::NVIC::mask(hal::pac::Interrupt::USBCTRL_IRQ);
-            write!(&mut writer, "{} - {}\r\n", record.level(), record.args()).unwrap();
+            write!(
+                &mut writer,
+                "{:.3} {} - {}\r\n",
+                time::time_us() as f32 / 1000.0,
+                record.level(),
+                record.args()
+            )
+            .unwrap();
             unsafe {
                 pac::NVIC::unmask(hal::pac::Interrupt::USBCTRL_IRQ);
             }
