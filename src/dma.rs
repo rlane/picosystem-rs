@@ -1,4 +1,7 @@
+use rp2040_pac::dma::ch::ch_ctrl_trig::CH_CTRL_TRIG_SPEC as CtrlReg;
+use rp2040_pac::dma::ch::ch_ctrl_trig::W as CtrlWriter;
 use rp2040_pac::dma::CH;
+use rp2040_pac::generic::W;
 
 pub struct DmaChannel {
     pub ch: *mut CH,
@@ -24,8 +27,11 @@ impl DmaChannel {
         (*self.ch).ch_trans_count.write(|w| w.bits(count));
     }
 
-    pub unsafe fn set_ctrl_and_trigger(&mut self, ctrl: u32) {
-        (*self.ch).ch_ctrl_trig.write(|w| w.bits(ctrl));
+    pub unsafe fn set_ctrl_and_trigger<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut CtrlWriter) -> &mut W<CtrlReg>,
+    {
+        (*self.ch).ch_ctrl_trig.write(f);
     }
 
     pub fn wait(&self) {
@@ -52,8 +58,13 @@ pub(crate) unsafe fn set_mem(
     dma_channel.set_src(src);
     dma_channel.set_dst(dst);
     dma_channel.set_count(count);
-    dma_channel
-        .set_ctrl_and_trigger((1 << 0) | (wordsize(elem_size) << 2) | (1 << 5) | (0x3f << 15));
+    dma_channel.set_ctrl_and_trigger(|w| {
+        w.treq_sel().permanent();
+        w.incr_write().set_bit();
+        w.data_size().bits(wordsize(elem_size) as u8);
+        w.en().set_bit();
+        w
+    });
     dma_channel.wait();
 }
 
@@ -67,6 +78,12 @@ pub(crate) unsafe fn copy_to_spi(
     dma_channel.set_src(src);
     dma_channel.set_dst(dst);
     dma_channel.set_count(count);
-    dma_channel.set_ctrl_and_trigger((1 << 0) | (wordsize(elem_size) << 2) | (1 << 4) | (16 << 15));
+    dma_channel.set_ctrl_and_trigger(|w| {
+        w.treq_sel().bits(16); // SPI0 TX
+        w.incr_read().set_bit();
+        w.data_size().bits(wordsize(elem_size) as u8);
+        w.en().set_bit();
+        w
+    });
     dma_channel.wait();
 }
