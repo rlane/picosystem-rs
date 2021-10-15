@@ -28,6 +28,10 @@ fn main() -> ! {
         }
     }
 
+    let mut cursorx = 60;
+    let mut cursory = 60;
+    let mut paused = false;
+
     let mut frame = 0;
     let mut prev_time_us = time::time_us();
     let mut prev_frame = 0;
@@ -39,7 +43,11 @@ fn main() -> ! {
 
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
-                let v = update(&prev_board, x, y);
+                let v = if paused {
+                    prev_board.get(x, y)
+                } else {
+                    update(&prev_board, x, y)
+                };
                 board.set(x, y, v);
                 let ix = (x * 2) as i32;
                 let iy = (y * 2) as i32;
@@ -55,6 +63,34 @@ fn main() -> ! {
                     .draw(&mut hw.display)
                     .unwrap();
             }
+        }
+
+        if hw.input.dpad_left() {
+            cursorx = wrap(cursorx - 1);
+        }
+        if hw.input.dpad_right() {
+            cursorx = wrap(cursorx + 1);
+        }
+        if hw.input.dpad_up() {
+            cursory = wrap(cursory - 1);
+        }
+        if hw.input.dpad_down() {
+            cursory = wrap(cursory + 1);
+        }
+        if hw.input.button_a() {
+            board.set(cursorx, cursory, true);
+        }
+        if hw.input.button_y() {
+            paused = !paused;
+        }
+
+        {
+            let ix = (cursorx * 2) as i32;
+            let iy = (cursory * 2) as i32;
+            Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
+                .into_styled(PrimitiveStyleBuilder::new().fill_color(Rgb565::RED).build())
+                .draw(&mut hw.display)
+                .unwrap();
         }
 
         hw.display.flush();
