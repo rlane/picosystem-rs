@@ -36,20 +36,20 @@ fn main() -> ! {
     let mut prev_time_us = time::time_us();
     let mut prev_frame = 0;
     loop {
-        let prev_board = board;
-        board = Board::new();
+        if !paused {
+            let prev_board = board;
+            board = Board::new();
+            for y in 0..BOARD_SIZE {
+                for x in 0..BOARD_SIZE {
+                    board.set(x, y, update(&prev_board, x, y));
+                }
+            }
+        }
 
         hw.display.clear(Rgb565::BLUE).unwrap();
-
-        for x in 0..BOARD_SIZE {
-            for y in 0..BOARD_SIZE {
-                let v = if paused {
-                    prev_board.get(x, y)
-                } else {
-                    update(&prev_board, x, y)
-                };
-                if v {
-                    board.set(x, y, v);
+        for y in 0..BOARD_SIZE {
+            for x in 0..BOARD_SIZE {
+                if board.get(x, y) {
                     let ix = (x * 2) as i32;
                     let iy = (y * 2) as i32;
                     Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
