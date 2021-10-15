@@ -31,19 +31,6 @@ fn main() -> ! {
     let mut prev_time_us = time::time_us();
     let mut prev_frame = 0;
     loop {
-        let cursor = Circle::new(
-            Point::new(
-                cursorx as i32 - cursor_size / 2,
-                cursory as i32 - cursor_size / 2,
-            ),
-            cursor_size as u32 + 1,
-        )
-        .into_styled(
-            PrimitiveStyleBuilder::new()
-                .fill_color(colors[color_index])
-                .build(),
-        );
-
         if hw.input.dpad_left.is_held() && cursorx > 0 {
             cursorx = cursorx - 1;
         }
@@ -56,14 +43,28 @@ fn main() -> ! {
         if hw.input.dpad_down.is_held() && cursory < HEIGHT - 1 {
             cursory = cursory + 1;
         }
-        if hw.input.button_a.is_held() {
-            cursor.draw(&mut hw.display).unwrap();
-        }
         if hw.input.button_y.is_pressed() {
             color_index = (color_index + 1) % colors.len();
         }
         if hw.input.button_x.is_pressed() {
             cursor_size = (cursor_size + 1) % 8;
+        }
+
+        let make_cursor = |color| {
+            Circle::new(
+                Point::new(
+                    cursorx as i32 - cursor_size / 2,
+                    cursory as i32 - cursor_size / 2,
+                ),
+                cursor_size as u32 + 1,
+            )
+            .into_styled(PrimitiveStyleBuilder::new().fill_color(color).build())
+        };
+
+        if hw.input.button_a.is_held() {
+            make_cursor(colors[color_index])
+                .draw(&mut hw.display)
+                .unwrap();
         }
 
         {
@@ -80,7 +81,13 @@ fn main() -> ! {
                 .unwrap();
         }
 
-        if frame % 32 < 16 {
+        {
+            let color = if frame % 32 < 16 {
+                colors[color_index]
+            } else {
+                Rgb565::WHITE
+            };
+            let cursor = make_cursor(color);
             cursor
                 .draw(&mut display::XorDisplay::new(&mut hw.display))
                 .unwrap();
@@ -88,8 +95,6 @@ fn main() -> ! {
             cursor
                 .draw(&mut display::XorDisplay::new(&mut hw.display))
                 .unwrap();
-        } else {
-            hw.display.flush();
         }
 
         let now = time::time_us();
