@@ -19,8 +19,8 @@ use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::dynpin::DynPinMode;
 use st7789::ST7789;
 
-const WIDTH: usize = 240;
-const HEIGHT: usize = 240;
+pub const WIDTH: usize = 240;
+pub const HEIGHT: usize = 240;
 
 pub type RealDisplay =
     ST7789<SPIInterfaceNoCS<Spi<hal::spi::Enabled, pac::SPI0, 8>, DynPin>, DynPin>;
@@ -146,5 +146,42 @@ impl DrawTarget for Display {
 impl OriginDimensions for Display {
     fn size(&self) -> Size {
         Size::new(WIDTH as u32, HEIGHT as u32)
+    }
+}
+
+pub struct XorDisplay<'a> {
+    display: &'a mut Display,
+}
+
+impl<'a> XorDisplay<'a> {
+    pub fn new(display: &'a mut Display) -> XorDisplay {
+        XorDisplay { display }
+    }
+}
+
+impl<'a> DrawTarget for XorDisplay<'a> {
+    type Color = Rgb565;
+    type Error = core::convert::Infallible;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        const M: u32 = WIDTH as u32 - 1;
+        for Pixel(coord, color) in pixels.into_iter() {
+            if let Ok((x @ 0..=M, y @ 0..=M)) = coord.try_into() {
+                let index: u32 = x + y * WIDTH as u32;
+                let color = RawU16::from(color).into_inner();
+                self.display.framebuffer[index as usize] ^= color.to_be();
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> OriginDimensions for XorDisplay<'a> {
+    fn size(&self) -> Size {
+        self.display.size()
     }
 }
