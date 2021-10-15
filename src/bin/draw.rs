@@ -20,7 +20,14 @@ fn main() -> ! {
     let mut hw = hardware::Hardware::new();
     info!("Finished initialization");
 
-    let colors: [Rgb565; 3] = [Rgb565::RED, Rgb565::GREEN, Rgb565::BLUE];
+    let colors: [Rgb565; 6] = [
+        Rgb565::RED,
+        Rgb565::GREEN,
+        Rgb565::BLUE,
+        Rgb565::YELLOW,
+        Rgb565::MAGENTA,
+        Rgb565::CYAN,
+    ];
 
     let mut cursorx = 120;
     let mut cursory = 120;
