@@ -39,7 +39,7 @@ fn main() -> ! {
         let prev_board = board;
         board = Board::new();
 
-        hw.display.clear(Rgb565::BLACK).unwrap();
+        hw.display.clear(Rgb565::BLUE).unwrap();
 
         for x in 0..BOARD_SIZE {
             for y in 0..BOARD_SIZE {
@@ -48,20 +48,19 @@ fn main() -> ! {
                 } else {
                     update(&prev_board, x, y)
                 };
-                board.set(x, y, v);
-                let ix = (x * 2) as i32;
-                let iy = (y * 2) as i32;
-                Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
-                    .into_styled(
-                        PrimitiveStyleBuilder::new()
-                            .fill_color(match v {
-                                true => Rgb565::WHITE,
-                                false => Rgb565::BLUE,
-                            })
-                            .build(),
-                    )
-                    .draw(&mut hw.display)
-                    .unwrap();
+                if v {
+                    board.set(x, y, v);
+                    let ix = (x * 2) as i32;
+                    let iy = (y * 2) as i32;
+                    Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
+                        .into_styled(
+                            PrimitiveStyleBuilder::new()
+                                .fill_color(Rgb565::WHITE)
+                                .build(),
+                        )
+                        .draw(&mut hw.display)
+                        .unwrap();
+                }
             }
         }
 
