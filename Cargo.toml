@@ -28,6 +28,7 @@ display-interface = "0.4"
 display-interface-spi = "0.4"
 embedded-graphics = "0.7"
 st7789 = "0.6"
+oorandom = "11.*"
 
 # cargo build/run
 [profile.dev]
