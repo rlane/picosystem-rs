@@ -37,12 +37,23 @@ fn main() -> ! {
     let mut prev_frame = 0;
     loop {
         if !paused {
+            const LIMIT: usize = BOARD_SIZE - 1;
             let prev_board = board;
             board = Board::new();
-            for y in 0..BOARD_SIZE {
-                for x in 0..BOARD_SIZE {
-                    board.set(x, y, update(&prev_board, x, y));
+            for x in 0..LIMIT {
+                board.set_fast(board.index(x, 0), update(&prev_board, x, 0));
+            }
+            for y in 1..LIMIT {
+                let start_index = board.index(0, y);
+                let end_index = board.index(LIMIT, y);
+                board.set_fast(start_index, update(&prev_board, 0, y));
+                for i in (start_index + 1)..end_index {
+                    board.set_fast(i, update_fast(&prev_board, i));
                 }
+                board.set_fast(end_index, update(&prev_board, LIMIT, y));
+            }
+            for x in 0..BOARD_SIZE {
+                board.set_fast(board.index(x, LIMIT), update(&prev_board, x, LIMIT));
             }
         }
 
@@ -135,6 +146,29 @@ impl Board {
     pub fn set(&mut self, x: usize, y: usize, v: bool) {
         self.data[wrap(y) * BOARD_SIZE + wrap(x)] = v;
     }
+
+    pub fn index(&self, x: usize, y: usize) -> usize {
+        y * BOARD_SIZE + x
+    }
+
+    pub fn get_fast(&self, i: usize) -> bool {
+        self.data[i]
+    }
+
+    pub fn set_fast(&mut self, i: usize, v: bool) {
+        self.data[i] = v;
+    }
+
+    pub fn count_neighbors_fast(&self, i: usize) -> i32 {
+        let data = &self.data;
+        (data[i - BOARD_SIZE - 1] as i32
+            + data[i - BOARD_SIZE] as i32
+            + data[i - BOARD_SIZE + 1] as i32)
+            + (data[i - 1] as i32 + data[i + 1] as i32)
+            + (data[i + BOARD_SIZE - 1] as i32
+                + data[i + BOARD_SIZE] as i32
+                + data[i + BOARD_SIZE + 1] as i32)
+    }
 }
 
 fn update(prev_board: &Board, x: usize, y: usize) -> bool {
@@ -147,6 +181,18 @@ fn update(prev_board: &Board, x: usize, y: usize) -> bool {
         }
     }
     let prev = prev_board.get(x, y);
+    if prev && (count == 2 || count == 3) {
+        true
+    } else if !prev && count == 3 {
+        true
+    } else {
+        false
+    }
+}
+
+fn update_fast(prev_board: &Board, i: usize) -> bool {
+    let count = prev_board.count_neighbors_fast(i);
+    let prev = prev_board.get_fast(i);
     if prev && (count == 2 || count == 3) {
         true
     } else if !prev && count == 3 {
