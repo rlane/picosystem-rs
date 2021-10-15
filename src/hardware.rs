@@ -1,4 +1,5 @@
 use crate::display::Display;
+use crate::dma;
 use crate::input;
 use crate::usb_logger;
 use embedded_time::rate::*;
@@ -67,6 +68,7 @@ impl Hardware {
             /*spi_device=*/ pac.SPI0,
             /*resets=*/ &mut pac.RESETS,
             /*delay_source=*/ &mut delay,
+            /*dma_channel=*/ unsafe { dma::DmaChannel::new(0) },
         );
 
         pac.RESETS.reset.modify(|_, w| w.dma().clear_bit());

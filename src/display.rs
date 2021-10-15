@@ -44,6 +44,7 @@ impl Display {
         spi_device: pac::SPI0,
         resets: &mut pac::RESETS,
         delay_source: &mut impl DelayUs<u32>,
+        dma_channel: DmaChannel,
     ) -> Display {
         info!("Initializing display");
         backlight_pin.into_push_pull_output();
@@ -71,7 +72,7 @@ impl Display {
             st7789,
             backlight_pin,
             framebuffer: [0; WIDTH * HEIGHT],
-            dma_channel: unsafe { DmaChannel::new(0) },
+            dma_channel,
         };
         let colors =
             core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
