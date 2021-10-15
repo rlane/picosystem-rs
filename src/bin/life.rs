@@ -75,22 +75,22 @@ fn main() -> ! {
             }
         }
 
-        if hw.input.dpad_left() {
+        if hw.input.dpad_left.is_held() {
             cursorx = wrap(cursorx - 1);
         }
-        if hw.input.dpad_right() {
+        if hw.input.dpad_right.is_held() {
             cursorx = wrap(cursorx + 1);
         }
-        if hw.input.dpad_up() {
+        if hw.input.dpad_up.is_held() {
             cursory = wrap(cursory - 1);
         }
-        if hw.input.dpad_down() {
+        if hw.input.dpad_down.is_held() {
             cursory = wrap(cursory + 1);
         }
-        if hw.input.button_a() {
+        if hw.input.button_a.is_held() {
             board.set(cursorx, cursory, true);
         }
-        if hw.input.button_y() {
+        if hw.input.button_y.is_held() {
             paused = !paused;
         }
 

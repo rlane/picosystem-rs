@@ -39,26 +39,26 @@ fn main() -> ! {
                     .build(),
             );
 
-        if hw.input.dpad_left() && cursorx > 0 {
+        if hw.input.dpad_left.is_held() && cursorx > 0 {
             cursorx = cursorx - 1;
         }
-        if hw.input.dpad_right() && cursorx < WIDTH - 1 {
+        if hw.input.dpad_right.is_held() && cursorx < WIDTH - 1 {
             cursorx = cursorx + 1;
         }
-        if hw.input.dpad_up() && cursory > 0 {
+        if hw.input.dpad_up.is_held() && cursory > 0 {
             cursory = cursory - 1;
         }
-        if hw.input.dpad_down() && cursory < HEIGHT - 1 {
+        if hw.input.dpad_down.is_held() && cursory < HEIGHT - 1 {
             cursory = cursory + 1;
         }
-        if hw.input.button_a() {
+        if hw.input.button_a.is_held() {
             cursor.draw(&mut hw.display).unwrap();
         }
-        if hw.input.button_y() && last_button_frame + 8 <= frame {
+        if hw.input.button_y.is_held() && last_button_frame + 8 <= frame {
             color_index = (color_index + 1) % colors.len();
             last_button_frame = frame;
         }
-        if hw.input.button_x() && last_button_frame + 8 <= frame {
+        if hw.input.button_x.is_held() && last_button_frame + 8 <= frame {
             cursor_size = (cursor_size + 1) % 8;
             last_button_frame = frame;
         }
