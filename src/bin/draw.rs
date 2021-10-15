@@ -31,12 +31,18 @@ fn main() -> ! {
     let mut prev_time_us = time::time_us();
     let mut prev_frame = 0;
     loop {
-        let cursor = Circle::new(Point::new(cursorx as i32, cursory as i32), cursor_size + 1)
-            .into_styled(
-                PrimitiveStyleBuilder::new()
-                    .fill_color(colors[color_index])
-                    .build(),
-            );
+        let cursor = Circle::new(
+            Point::new(
+                cursorx as i32 - cursor_size / 2,
+                cursory as i32 - cursor_size / 2,
+            ),
+            cursor_size as u32 + 1,
+        )
+        .into_styled(
+            PrimitiveStyleBuilder::new()
+                .fill_color(colors[color_index])
+                .build(),
+        );
 
         if hw.input.dpad_left.is_held() && cursorx > 0 {
             cursorx = cursorx - 1;
