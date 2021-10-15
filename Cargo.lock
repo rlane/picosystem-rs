@@ -513,6 +513,7 @@ dependencies = [
  "pico",
  "rp2040-boot2",
  "rp2040-hal",
+ "rp2040-pac",
  "st7789",
  "usb-device",
  "usbd-hid",
@@ -549,8 +550,7 @@ dependencies = [
 [[package]]
 name = "rp2040-pac"
 version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b6e222c239e9f08d36faf5e2372b4eb0661b3535e3b28942db1e937a9d15f76"
+source = "git+https://github.com/rp-rs/rp2040-pac.git#f9b770a5635bee0c9a7ae9b3faead4bf3ab31cca"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",

@@ -1,4 +1,4 @@
-use crate::dma;
+use crate::dma::{self, DmaChannel};
 use core::convert::TryInto;
 use display_interface_spi::SPIInterfaceNoCS;
 use embedded_graphics::draw_target::DrawTarget;
@@ -29,6 +29,7 @@ pub struct Display {
     st7789: RealDisplay,
     backlight_pin: DynPin,
     framebuffer: [u16; WIDTH * HEIGHT],
+    dma_channel: DmaChannel,
 }
 
 impl Display {
@@ -70,6 +71,7 @@ impl Display {
             st7789,
             backlight_pin,
             framebuffer: [0; WIDTH * HEIGHT],
+            dma_channel: unsafe { DmaChannel::new(0) },
         };
         let colors =
             core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
@@ -85,6 +87,7 @@ impl Display {
         unsafe {
             let spi0_tx = 0x4003c000 + 8;
             dma::copy_to_spi(
+                &mut self.dma_channel,
                 self.framebuffer.as_ptr() as u32,
                 spi0_tx,
                 1,
@@ -126,6 +129,7 @@ impl DrawTarget for Display {
         let color = RawU16::from(color).into_inner().to_be();
         unsafe {
             dma::set_mem(
+                &mut self.dma_channel,
                 &color as *const u16 as u32,
                 self.framebuffer.as_ptr() as u32,
                 2,

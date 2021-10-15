@@ -20,6 +20,7 @@ embedded-time = "0.12"
 pico = { git = "https://github.com/rp-rs/rp-hal.git", branch="main" }
 rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch="main" }
 rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", branch="main", features=["rt"] }
+rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }
 usb-device = "0.2"
 usbd-hid = "0.5"
 usbd-serial = "0.1"
@@ -29,6 +30,9 @@ display-interface-spi = "0.4"
 embedded-graphics = "0.7"
 st7789 = "0.6"
 oorandom = "11.*"
+
+[patch.crates-io]
+rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }
 
 # cargo build/run
 [profile.dev]
