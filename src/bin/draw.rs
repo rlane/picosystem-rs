@@ -7,6 +7,7 @@ use log::info;
 use rlane_picosystem_games as rpsg;
 use rpsg::{display, hardware, time};
 
+use embedded_graphics::pixelcolor::raw::RawU16;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
@@ -19,6 +20,8 @@ pub static BOOT_LOADER: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 fn main() -> ! {
     let mut hw = hardware::Hardware::new();
     info!("Finished initialization");
+
+    let mut rng = oorandom::Rand32::new(time::time_us() as u64);
 
     let colors: [Rgb565; 6] = [
         Rgb565::RED,
@@ -33,6 +36,7 @@ fn main() -> ! {
     let mut cursory = 120;
     let mut color_index = 0;
     let mut cursor_size = 1;
+    let mut color = colors[color_index];
 
     let mut frame = 0;
     let mut prev_time_us = time::time_us();
@@ -52,9 +56,13 @@ fn main() -> ! {
         }
         if hw.input.button_y.is_pressed() {
             color_index = (color_index + 1) % colors.len();
+            color = colors[color_index]
         }
         if hw.input.button_x.is_pressed() {
             cursor_size = (cursor_size + 1) % 8;
+        }
+        if hw.input.button_b.is_pressed() {
+            color = RawU16::new(rng.rand_u32() as u16).into();
         }
 
         let make_cursor = |color| {
@@ -69,9 +77,7 @@ fn main() -> ! {
         };
 
         if hw.input.button_a.is_held() {
-            make_cursor(colors[color_index])
-                .draw(&mut hw.display)
-                .unwrap();
+            make_cursor(color).draw(&mut hw.display).unwrap();
         }
 
         {
@@ -79,7 +85,7 @@ fn main() -> ! {
             Rectangle::new(Point::new(0, 0), Size::new(20, 20))
                 .into_styled(
                     PrimitiveStyleBuilder::new()
-                        .fill_color(colors[color_index])
+                        .fill_color(color)
                         .stroke_color(Rgb565::WHITE)
                         .stroke_width(2)
                         .build(),
@@ -89,12 +95,12 @@ fn main() -> ! {
         }
 
         {
-            let color = if frame % 32 < 16 {
-                colors[color_index]
+            let cursor_color = if frame % 32 < 16 {
+                color
             } else {
                 Rgb565::WHITE
             };
-            let cursor = make_cursor(color);
+            let cursor = make_cursor(cursor_color);
             cursor
                 .draw(&mut display::XorDisplay::new(&mut hw.display))
                 .unwrap();
