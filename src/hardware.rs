@@ -1,4 +1,5 @@
 use crate::display::Display;
+use crate::input;
 use crate::usb_logger;
 use embedded_time::rate::*;
 use pico::hal;
@@ -11,6 +12,7 @@ pub struct Hardware {
     pub display: Display,
     pub blue_led_pin: DynPin,
     pub delay: cortex_m::delay::Delay,
+    pub input: input::Input,
 }
 
 impl Hardware {
@@ -70,10 +72,22 @@ impl Hardware {
         pac.RESETS.reset.modify(|_, w| w.dma().clear_bit());
         while pac.RESETS.reset_done.read().dma().bit_is_clear() {}
 
+        let input = input::Input::new(
+            pins.gpio22.into(),
+            pins.gpio21.into(),
+            pins.gpio23.into(),
+            pins.gpio20.into(),
+            pins.gpio17.into(),
+            pins.gpio16.into(),
+            pins.gpio18.into(),
+            pins.gpio19.into(),
+        );
+
         Hardware {
             display,
             blue_led_pin: blue_led_pin.into(),
             delay,
+            input,
         }
     }
 }
