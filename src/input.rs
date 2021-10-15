@@ -1,18 +1,37 @@
+use crate::time;
 use embedded_hal::digital::v2::InputPin;
 use rp2040_hal::gpio::dynpin::DynPin;
 
 pub struct Button {
     pin: DynPin,
+    pressed_time: u32,
 }
 
 impl Button {
     pub fn new(mut pin: DynPin) -> Button {
         pin.into_pull_down_input();
-        Button { pin }
+        Button {
+            pin,
+            pressed_time: 0,
+        }
     }
 
     pub fn is_held(&self) -> bool {
         self.pin.is_low().unwrap()
+    }
+
+    pub fn is_pressed(&mut self) -> bool {
+        if self.pin.is_low().unwrap() {
+            if self.pressed_time > 0 {
+                false
+            } else {
+                self.pressed_time = time::time_us();
+                true
+            }
+        } else {
+            self.pressed_time = 0;
+            false
+        }
     }
 }
 

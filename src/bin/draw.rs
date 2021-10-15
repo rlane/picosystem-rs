@@ -25,7 +25,6 @@ fn main() -> ! {
     let mut cursorx = 120;
     let mut cursory = 120;
     let mut color_index = 0;
-    let mut last_button_frame = 0;
     let mut cursor_size = 1;
 
     let mut frame = 0;
@@ -54,13 +53,11 @@ fn main() -> ! {
         if hw.input.button_a.is_held() {
             cursor.draw(&mut hw.display).unwrap();
         }
-        if hw.input.button_y.is_held() && last_button_frame + 8 <= frame {
+        if hw.input.button_y.is_pressed() {
             color_index = (color_index + 1) % colors.len();
-            last_button_frame = frame;
         }
-        if hw.input.button_x.is_held() && last_button_frame + 8 <= frame {
+        if hw.input.button_x.is_pressed() {
             cursor_size = (cursor_size + 1) % 8;
-            last_button_frame = frame;
         }
 
         {

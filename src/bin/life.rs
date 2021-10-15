@@ -90,7 +90,7 @@ fn main() -> ! {
         if hw.input.button_a.is_held() {
             board.set(cursorx, cursory, true);
         }
-        if hw.input.button_y.is_held() {
+        if hw.input.button_y.is_pressed() {
             paused = !paused;
         }
 
