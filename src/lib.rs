@@ -1,5 +1,6 @@
 #![no_std]
 
+pub mod audio;
 pub mod display;
 pub mod dma;
 pub mod hardware;

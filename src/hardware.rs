@@ -1,7 +1,6 @@
 use crate::display::Display;
-use crate::dma;
-use crate::input;
-use crate::usb_logger;
+use crate::{audio, dma, input, usb_logger};
+use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
 use pico::hal;
 use pico::hal::pac;
@@ -14,6 +13,7 @@ pub struct Hardware {
     pub blue_led_pin: DynPin,
     pub delay: cortex_m::delay::Delay,
     pub input: input::Input,
+    pub audio: audio::Audio,
 }
 
 impl Hardware {
@@ -55,7 +55,13 @@ impl Hardware {
             &mut pac.RESETS,
         );
 
-        let blue_led_pin = pins.gpio15.into_push_pull_output();
+        let mut red_led_pin = pins.gpio14.into_push_pull_output();
+        let mut green_led_pin = pins.gpio13.into_push_pull_output();
+        let mut blue_led_pin = pins.gpio15.into_push_pull_output();
+
+        red_led_pin.set_low().unwrap();
+        green_led_pin.set_low().unwrap();
+        blue_led_pin.set_low().unwrap();
 
         let display = Display::new(
             /*backlight_pin=*/ pins.gpio12.into(),
@@ -85,11 +91,14 @@ impl Hardware {
             pins.gpio19.into(),
         );
 
+        let audio = audio::Audio::new(pins.gpio11.into());
+
         Hardware {
             display,
             blue_led_pin: blue_led_pin.into(),
             delay,
             input,
+            audio,
         }
     }
 }
