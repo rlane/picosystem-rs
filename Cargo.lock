@@ -508,6 +508,7 @@ dependencies = [
  "embedded-graphics",
  "embedded-hal",
  "embedded-time",
+ "heapless",
  "log",
  "oorandom",
  "pico",
