@@ -99,55 +99,66 @@ fn main() -> ! {
     let mut hw = hardware::Hardware::new();
     info!("Finished initialization");
 
-    let mut cursor = Point::new(0, 0);
-    let target = Point::new(MAZE_SIZE - 1, MAZE_SIZE - 1);
-    let mut maze = generate_maze(cursor, &mut hw.display);
-    maze.set_visited(cursor, true);
-
-    draw_maze(&mut hw.display, &maze, cursor, target);
-    hw.display.flush();
-
-    let mut frame = 0;
-    let mut prev_time_us = time::time_us();
-    let mut prev_frame = 0;
     loop {
-        let mut dir: Option<u8> = None;
-        if hw.input.dpad_left.is_pressed() {
-            dir = Some(W);
-        } else if hw.input.dpad_right.is_pressed() {
-            dir = Some(E);
-        } else if hw.input.dpad_up.is_pressed() {
-            dir = Some(N);
-        } else if hw.input.dpad_down.is_pressed() {
-            dir = Some(S);
-        }
-        if let Some(d) = dir {
-            let next_cursor = cursor + delta(d);
-            if valid(next_cursor) && maze.get(cursor).has_tunnel(d) {
-                if maze.get_visited(next_cursor) {
-                    draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::BLACK);
-                    draw_link(&mut hw.display, cursor, d, Rgb565::BLACK);
-                    maze.set_visited(cursor, false);
-                } else {
-                    let path_color = Rgb565::new(200, 0, 0);
-                    draw_cell(&mut hw.display, cursor, maze.get(cursor), path_color);
-                    draw_link(&mut hw.display, cursor, d, path_color);
-                }
-                cursor = next_cursor;
-                draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::RED);
-                maze.set_visited(cursor, true);
-                hw.display.flush();
-            }
-        }
+        let mut cursor = Point::new(0, 0);
+        let target = Point::new(MAZE_SIZE - 1, MAZE_SIZE - 1);
+        let mut maze = generate_maze(cursor, &mut hw.display);
+        maze.set_visited(cursor, true);
 
-        let now = time::time_us();
-        if now - prev_time_us > 1000_000 {
-            let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
-            info!("Frame time: {} us", frame_time);
-            prev_frame = frame;
-            prev_time_us = now;
+        draw_maze(&mut hw.display, &maze, cursor, target);
+        hw.display.flush();
+
+        let mut frame = 0;
+        let mut prev_time_us = time::time_us();
+        let mut prev_frame = 0;
+        loop {
+            let mut dir: Option<u8> = None;
+            if hw.input.dpad_left.is_pressed() {
+                dir = Some(W);
+            } else if hw.input.dpad_right.is_pressed() {
+                dir = Some(E);
+            } else if hw.input.dpad_up.is_pressed() {
+                dir = Some(N);
+            } else if hw.input.dpad_down.is_pressed() {
+                dir = Some(S);
+            }
+            if let Some(d) = dir {
+                let next_cursor = cursor + delta(d);
+                if valid(next_cursor) && maze.get(cursor).has_tunnel(d) {
+                    if maze.get_visited(next_cursor) {
+                        draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::BLACK);
+                        draw_link(&mut hw.display, cursor, d, Rgb565::BLACK);
+                        maze.set_visited(cursor, false);
+                    } else {
+                        let path_color = Rgb565::new(200, 0, 0);
+                        draw_cell(&mut hw.display, cursor, maze.get(cursor), path_color);
+                        draw_link(&mut hw.display, cursor, d, path_color);
+                    }
+                    cursor = next_cursor;
+                    draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::RED);
+                    maze.set_visited(cursor, true);
+                    hw.display.flush();
+                }
+            }
+
+            if cursor == target {
+                hw.audio.start_tone(440);
+                hw.delay.delay_ms(100);
+                hw.audio.start_tone(880);
+                hw.delay.delay_ms(100);
+                hw.audio.stop();
+                break;
+            }
+
+            let now = time::time_us();
+            if now - prev_time_us > 1000_000 {
+                let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
+                info!("Frame time: {} us", frame_time);
+                prev_frame = frame;
+                prev_time_us = now;
+            }
+            frame += 1;
         }
-        frame += 1;
     }
 }
 
