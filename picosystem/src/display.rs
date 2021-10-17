@@ -22,13 +22,18 @@ use st7789::ST7789;
 pub const WIDTH: usize = 240;
 pub const HEIGHT: usize = 240;
 
+static mut FRAMEBUFFER: [u16; WIDTH * HEIGHT] = [0; WIDTH * HEIGHT];
+
+fn framebuffer() -> &'static mut [u16; WIDTH * HEIGHT] {
+    unsafe { &mut FRAMEBUFFER }
+}
+
 pub type RealDisplay =
     ST7789<SPIInterfaceNoCS<Spi<hal::spi::Enabled, pac::SPI0, 8>, DynPin>, DynPin>;
 
 pub struct Display {
     st7789: RealDisplay,
     backlight_pin: DynPin,
-    framebuffer: [u16; WIDTH * HEIGHT],
     dma_channel: DmaChannel,
 }
 
@@ -72,7 +77,6 @@ impl Display {
         let mut display = Display {
             st7789,
             backlight_pin,
-            framebuffer: [0; WIDTH * HEIGHT],
             dma_channel,
         };
         let colors =
@@ -90,7 +94,7 @@ impl Display {
             let spi0_tx = 0x4003c000 + 8;
             dma::copy_to_spi(
                 &mut self.dma_channel,
-                self.framebuffer.as_ptr() as u32,
+                framebuffer().as_ptr() as u32,
                 spi0_tx,
                 1,
                 (WIDTH * HEIGHT * 2) as u32,
@@ -116,11 +120,12 @@ impl DrawTarget for Display {
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {
         const M: u32 = WIDTH as u32 - 1;
+        let fb = framebuffer();
         for Pixel(coord, color) in pixels.into_iter() {
             if let Ok((x @ 0..=M, y @ 0..=M)) = coord.try_into() {
                 let index: u32 = x + y * WIDTH as u32;
                 let color = RawU16::from(color).into_inner();
-                self.framebuffer[index as usize] = color.to_be();
+                fb[index as usize] = color.to_be();
             }
         }
 
@@ -133,16 +138,16 @@ impl DrawTarget for Display {
             dma::set_mem(
                 &mut self.dma_channel,
                 &color as *const u16 as u32,
-                self.framebuffer.as_ptr() as u32,
+                framebuffer().as_ptr() as u32,
                 2,
                 (WIDTH * HEIGHT) as u32,
             );
         }
-        if self.framebuffer[0] != color {
+        if framebuffer()[0] != color {
             log::info!(
                 "incorrect framebuffer[0], expected {} got {}",
                 color,
-                self.framebuffer[0]
+                framebuffer()[0]
             );
         }
         Ok(())
@@ -174,11 +179,12 @@ impl<'a> DrawTarget for XorDisplay<'a> {
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {
         const M: u32 = WIDTH as u32 - 1;
+        let fb = framebuffer();
         for Pixel(coord, color) in pixels.into_iter() {
             if let Ok((x @ 0..=M, y @ 0..=M)) = coord.try_into() {
                 let index: u32 = x + y * WIDTH as u32;
                 let color = RawU16::from(color).into_inner();
-                self.display.framebuffer[index as usize] ^= color.to_be();
+                fb[index as usize] ^= color.to_be();
             }
         }
 
