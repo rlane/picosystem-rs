@@ -30,16 +30,16 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut prev_frame = 0;
     loop {
         if hw.input.dpad_left.is_held() && cursorx > 0 {
-            cursorx = cursorx - 1;
+            cursorx -= 1;
         }
         if hw.input.dpad_right.is_held() && cursorx < WIDTH - 1 {
-            cursorx = cursorx + 1;
+            cursorx += 1;
         }
         if hw.input.dpad_up.is_held() && cursory > 0 {
-            cursory = cursory - 1;
+            cursory -= 1;
         }
         if hw.input.dpad_down.is_held() && cursory < HEIGHT - 1 {
-            cursory = cursory + 1;
+            cursory += 1;
         }
         if hw.input.button_y.is_pressed() {
             color_index = (color_index + 1) % colors.len();
@@ -98,7 +98,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         }
 
         let now = time::time_us();
-        if now - prev_time_us > 1000_000 {
+        if now - prev_time_us > 1_000_000 {
             let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
             info!("Frame time: {} us", frame_time);
             prev_frame = frame;

@@ -7,6 +7,7 @@ pub struct DmaChannel {
     pub ch: *mut CH,
 }
 
+#[allow(clippy::missing_safety_doc)]
 impl DmaChannel {
     pub unsafe fn new(channel: isize) -> Self {
         let ch0 = 0x50000000 as *mut CH;

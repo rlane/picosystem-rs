@@ -17,6 +17,7 @@ pub struct Hardware {
 }
 
 impl Hardware {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let mut pac = pac::Peripherals::take().unwrap();
         let core = pac::CorePeripherals::take().unwrap();
