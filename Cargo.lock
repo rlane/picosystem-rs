@@ -450,6 +450,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "picosystem_games"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "embedded-graphics",
+ "embedded-hal",
+ "embedded-time",
+ "heapless",
+ "log",
+ "oorandom",
+ "pico",
+ "picosystem",
+ "rp2040-boot2",
+ "rp2040-hal",
+ "rp2040-pac",
+]
+
+[[package]]
 name = "pio"
 version = "0.1.0"
 source = "git+https://github.com/rp-rs/pio-rs.git?branch=main#8c12d426685ac23cac975341e728fc0a50ebfd6c"
