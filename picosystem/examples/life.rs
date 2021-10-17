@@ -3,8 +3,7 @@
 
 use cortex_m_rt::entry;
 use log::info;
-use rlane_picosystem_games as rpsg;
-use rpsg::{hardware, time};
+use picosystem::{hardware, time};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;

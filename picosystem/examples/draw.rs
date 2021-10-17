@@ -4,8 +4,7 @@
 use cortex_m_rt::entry;
 use display::{HEIGHT, WIDTH};
 use log::info;
-use rlane_picosystem_games as rpsg;
-use rpsg::{display, hardware, time};
+use picosystem::{display, hardware, time};
 
 use embedded_graphics::pixelcolor::raw::RawU16;
 use embedded_graphics::pixelcolor::Rgb565;
