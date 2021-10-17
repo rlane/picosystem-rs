@@ -14,19 +14,13 @@ Install the required toolchain:
 
 ```
 rustup target add thumbv6m-none-eabi
-cargo install elf2uf2-rs
-```
-
-Build:
-
-```
-cargo build --release
+cargo install elf2uf2-rs flip-link
 ```
 
 Put the PicoSystem into USB boot mode, mount the drive, then:
 
 ```
-elf2uf2-rs -d target/thumbv6m-none-eabi/release/picosystem_games
+cargo run --release
 ```
 
 ## License
