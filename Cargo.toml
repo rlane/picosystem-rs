@@ -28,6 +28,12 @@ heapless = "0.7"
 
 [patch.crates-io]
 rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }
+# https://github.com/rp-rs/rp-hal/pull/166
+rp2040-hal = { git = "https://github.com/rlane/rp-hal.git", branch="spi-freq" }
+
+# https://github.com/rp-rs/rp-hal/pull/166
+[patch."https://github.com/rp-rs/rp-hal.git"]
+rp2040-hal = { git = "https://github.com/rlane/rp-hal.git", branch="spi-freq" }
 
 # cargo build/run
 [profile.dev]

@@ -414,7 +414,7 @@ checksum = "acbf547ad0c65e31259204bd90935776d1c693cec2f4ff7abb7a1bbbd40dfe58"
 [[package]]
 name = "pico"
 version = "0.1.0"
-source = "git+https://github.com/rp-rs/rp-hal.git?branch=main#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
+source = "git+https://github.com/rp-rs/rp-hal.git?branch=main#dd4a9a8f22de096a44ec1c577065c02c6d477c84"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -437,9 +437,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9f5105d4fdaab20335ca9565e106a5d9b82b6219b5ba735731124ac6711d23d"
+checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
 dependencies = [
  "unicode-xid",
 ]
@@ -523,8 +523,8 @@ dependencies = [
 
 [[package]]
 name = "rp2040-boot2"
-version = "0.1.2"
-source = "git+https://github.com/rp-rs/rp2040-boot2-rs?branch=main#55a20fe6706922ef6ac791a46e293628a8b163f7"
+version = "0.2.0"
+source = "git+https://github.com/rp-rs/rp2040-boot2-rs?branch=main#4691c7160ad1f5e06a7d281bdf1dcf4934e3055d"
 dependencies = [
  "crc-any",
 ]
@@ -532,7 +532,7 @@ dependencies = [
 [[package]]
 name = "rp2040-hal"
 version = "0.3.0"
-source = "git+https://github.com/rp-rs/rp-hal.git?branch=main#02cb4b8b067ae9ab929d0ab2f1f86e588a57a704"
+source = "git+https://github.com/rlane/rp-hal.git?branch=spi-freq#c84effb896a885cd46f46177e016bcdeb3d13483"
 dependencies = [
  "cortex-m",
  "embedded-hal",
