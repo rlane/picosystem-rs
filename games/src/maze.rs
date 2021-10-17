@@ -1,7 +1,3 @@
-#![no_std]
-#![no_main]
-
-use cortex_m_rt::entry;
 use display::WIDTH;
 use log::info;
 use picosystem::{display, hardware, time};
@@ -9,10 +5,6 @@ use picosystem::{display, hardware, time};
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
-
-#[link_section = ".boot2"]
-#[used]
-pub static BOOT_LOADER: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 const MAZE_SCALE: i32 = 16;
 const MAZE_SIZE: i32 = WIDTH as i32 / MAZE_SCALE;
@@ -93,11 +85,7 @@ fn draw_maze(display: &mut display::Display, maze: &Maze, cursor: Point, target:
         .unwrap();
 }
 
-#[entry]
-fn main() -> ! {
-    let mut hw = hardware::Hardware::new();
-    info!("Finished initialization");
-
+pub fn main(hw: &mut hardware::Hardware) -> ! {
     loop {
         let mut cursor = Point::new(0, 0);
         let target = Point::new(MAZE_SIZE - 1, MAZE_SIZE - 1);

@@ -3,9 +3,12 @@
 This repository contains a Rust SDK for the [PicoSystem][1] handheld game console
 and a several games built with it.
 
+All the included games are compiled into a single UF2 binary that boots into a
+menu screen. You can also use this SDK to create standalone games.
+
 [1]: https://shop.pimoroni.com/products/picosystem
 
-## Compiling and Running Examples
+## Compiling and Running
 
 Install the required toolchain:
 
@@ -14,16 +17,16 @@ rustup target add thumbv6m-none-eabi
 cargo install elf2uf2-rs
 ```
 
-Build the examples:
+Build:
 
 ```
-cargo build --release --examples
+cargo build --release
 ```
 
 Put the PicoSystem into USB boot mode, mount the drive, then:
 
 ```
-elf2uf2-rs -d target/thumbv6m-none-eabi/release/examples/maze  # For the "maze" example
+elf2uf2-rs -d target/thumbv6m-none-eabi/release/picosystem_games
 ```
 
 ## License
