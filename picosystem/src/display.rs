@@ -33,6 +33,7 @@ pub struct Display {
 }
 
 impl Display {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         mut backlight_pin: DynPin,
         mut lcd_dc_pin: DynPin,

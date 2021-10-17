@@ -47,6 +47,7 @@ pub struct Input {
 }
 
 impl Input {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dpad_left_pin: DynPin,
         dpad_right_pin: DynPin,

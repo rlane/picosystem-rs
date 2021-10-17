@@ -138,7 +138,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             }
 
             let now = time::time_us();
-            if now - prev_time_us > 1000_000 {
+            if now - prev_time_us > 1_000_000 {
                 let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
                 info!("Frame time: {} us", frame_time);
                 prev_frame = frame;

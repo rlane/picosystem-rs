@@ -12,8 +12,8 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut notes: [i32; WIDTH] = [-1; WIDTH];
     let mut playing: Option<i32> = None;
 
-    for x in 0..WIDTH {
-        notes[x] = x as i32;
+    for (x, note) in notes.iter_mut().enumerate() {
+        *note = x as i32;
     }
 
     let mut frame = 0;
@@ -24,16 +24,16 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         hw.display.clear(Rgb565::BLACK).unwrap();
 
         if hw.input.dpad_left.is_held() && cursorx > 0 {
-            cursorx = cursorx - 1;
+            cursorx -= 1;
         }
         if hw.input.dpad_right.is_held() && cursorx < WIDTH - 1 {
-            cursorx = cursorx + 1;
+            cursorx += 1;
         }
         if hw.input.dpad_up.is_held() && cursory > 0 {
-            cursory = cursory - 1;
+            cursory -= 1;
         }
         if hw.input.dpad_down.is_held() && cursory < HEIGHT - 1 {
-            cursory = cursory + 1;
+            cursory += 1;
         }
 
         if hw.input.button_a.is_held() {
@@ -78,9 +78,9 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             }
         }
 
-        for x in 0..WIDTH {
-            if notes[x] >= 0 {
-                Pixel(Point::new(x as i32, notes[x]), Rgb565::GREEN)
+        for (x, &note) in notes.iter().enumerate() {
+            if note >= 0 {
+                Pixel(Point::new(x as i32, note), Rgb565::GREEN)
                     .draw(&mut hw.display)
                     .unwrap();
             }
@@ -108,7 +108,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         }
 
         let now = time::time_us();
-        if now - prev_time_us > 1000_000 {
+        if now - prev_time_us > 1_000_000 {
             let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
             info!("Frame time: {} us", frame_time);
             prev_frame = frame;

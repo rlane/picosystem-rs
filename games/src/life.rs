@@ -93,7 +93,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         hw.display.flush();
 
         let now = time::time_us();
-        if now - prev_time_us > 1000_000 {
+        if now - prev_time_us > 1_000_000 {
             let frame_time = (now - prev_time_us) / (frame - prev_frame) as u32;
             info!("Frame time: {} us", frame_time);
             prev_frame = frame;
@@ -168,23 +168,11 @@ fn update(prev_board: &Board, x: usize, y: usize) -> bool {
         }
     }
     let prev = prev_board.get(x, y);
-    if prev && (count == 2 || count == 3) {
-        true
-    } else if !prev && count == 3 {
-        true
-    } else {
-        false
-    }
+    count == 3 || (prev && count == 2)
 }
 
 fn update_fast(prev_board: &Board, i: usize) -> bool {
     let count = prev_board.count_neighbors_fast(i);
     let prev = prev_board.get_fast(i);
-    if prev && (count == 2 || count == 3) {
-        true
-    } else if !prev && count == 3 {
-        true
-    } else {
-        false
-    }
+    count == 3 || (prev && count == 2)
 }
