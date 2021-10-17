@@ -1,25 +1,12 @@
-#![no_std]
-#![no_main]
-
-use cortex_m_rt::entry;
 use display::{HEIGHT, WIDTH};
 use log::info;
-use rlane_picosystem_games as rpsg;
-use rpsg::{display, hardware, time};
+use picosystem::{display, hardware, time};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 
-#[link_section = ".boot2"]
-#[used]
-pub static BOOT_LOADER: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
-
-#[entry]
-fn main() -> ! {
-    let mut hw = hardware::Hardware::new();
-    info!("Finished initialization");
-
+pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut cursorx = 0;
     let mut cursory = HEIGHT / 2;
     let mut notes: [i32; WIDTH] = [-1; WIDTH];

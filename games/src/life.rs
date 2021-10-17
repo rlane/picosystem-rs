@@ -1,24 +1,11 @@
-#![no_std]
-#![no_main]
-
-use cortex_m_rt::entry;
 use log::info;
-use rlane_picosystem_games as rpsg;
-use rpsg::{hardware, time};
+use picosystem::{hardware, time};
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::*;
 
-#[link_section = ".boot2"]
-#[used]
-pub static BOOT_LOADER: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
-
-#[entry]
-fn main() -> ! {
-    let mut hw = hardware::Hardware::new();
-    info!("Finished initialization");
-
+pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut rng = oorandom::Rand32::new(time::time_us() as u64);
 
     let mut board = Board::new();
