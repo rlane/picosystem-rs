@@ -1,3 +1,4 @@
+// Based on https://github.com/rp-rs/rp-hal/blob/c8bb2e43c792dd3975a255d7eba479547411aec6/boards/pico/examples/pico_usb_serial_interrupt.rs
 use crate::time;
 use core::fmt;
 use core::fmt::Write;
