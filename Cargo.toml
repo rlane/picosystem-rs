@@ -6,12 +6,6 @@ resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "blink"
-
-[[bin]]
-name = "usb_serial"
-
 [dependencies]
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
