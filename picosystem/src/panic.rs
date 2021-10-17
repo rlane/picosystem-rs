@@ -19,6 +19,7 @@ fn panic(info: &PanicInfo) -> ! {
 #[exception]
 unsafe fn HardFault(_: &ExceptionFrame) -> ! {
     turn_on_leds();
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

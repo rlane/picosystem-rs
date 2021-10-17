@@ -10,6 +10,8 @@ use rp2040_hal::gpio::Pins;
 
 pub struct Hardware {
     pub display: Display,
+    pub red_led_pin: DynPin,
+    pub green_led_pin: DynPin,
     pub blue_led_pin: DynPin,
     pub delay: cortex_m::delay::Delay,
     pub input: input::Input,
@@ -96,6 +98,8 @@ impl Hardware {
 
         Hardware {
             display,
+            red_led_pin: red_led_pin.into(),
+            green_led_pin: green_led_pin.into(),
             blue_led_pin: blue_led_pin.into(),
             delay,
             input,
