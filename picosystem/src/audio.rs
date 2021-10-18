@@ -13,7 +13,6 @@ pub struct StaticAudio {
 }
 
 static mut STATIC_AUDIO: Option<StaticAudio> = None;
-const TIMER_REGS: *mut pac::timer::RegisterBlock = 0x40054000 as *mut pac::timer::RegisterBlock;
 
 impl Audio {
     pub fn new(mut pin: DynPin) -> Self {
@@ -46,13 +45,14 @@ impl Audio {
 }
 
 unsafe fn start_timer(period_us: u32) {
-    (*TIMER_REGS).inte.write(|w| {
+    let timer_regs = pac::TIMER::PTR;
+    (*timer_regs).inte.write(|w| {
         w.alarm_0().set_bit();
         w
     });
-    let now = (*TIMER_REGS).timerawl.read().bits();
-    (*TIMER_REGS).alarm0.write(|w| w.bits(now + period_us));
-    (*TIMER_REGS).intr.write(|w| {
+    let now = (*timer_regs).timerawl.read().bits();
+    (*timer_regs).alarm0.write(|w| w.bits(now + period_us));
+    (*timer_regs).intr.write(|w| {
         w.alarm_0().set_bit();
         w
     });

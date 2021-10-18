@@ -91,11 +91,10 @@ impl Display {
 
     pub fn flush(&mut self) {
         unsafe {
-            let spi0_tx = 0x4003c000 + 8;
             dma::copy_to_spi(
                 &mut self.dma_channel,
                 framebuffer().as_ptr() as u32,
-                spi0_tx,
+                (*pac::SPI0::PTR).sspdr.as_ptr() as u32,
                 1,
                 (WIDTH * HEIGHT * 2) as u32,
             );
