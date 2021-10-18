@@ -4,39 +4,38 @@ use rp2040_pac::dma::CH;
 use rp2040_pac::generic::W;
 
 pub struct DmaChannel {
-    pub ch: *mut CH,
+    pub ch: &'static CH,
 }
 
 #[allow(clippy::missing_safety_doc)]
 impl DmaChannel {
-    pub unsafe fn new(channel: isize) -> Self {
-        let ch0 = 0x50000000 as *mut CH;
+    pub unsafe fn new(channel: usize) -> Self {
         DmaChannel {
-            ch: ch0.offset(channel),
+            ch: &(*rp2040_pac::DMA::PTR).ch[channel],
         }
     }
 
     pub unsafe fn set_src(&mut self, src: u32) {
-        (*self.ch).ch_read_addr.write(|w| w.bits(src));
+        self.ch.ch_read_addr.write(|w| w.bits(src));
     }
 
     pub unsafe fn set_dst(&mut self, dst: u32) {
-        (*self.ch).ch_write_addr.write(|w| w.bits(dst));
+        self.ch.ch_write_addr.write(|w| w.bits(dst));
     }
 
     pub unsafe fn set_count(&mut self, count: u32) {
-        (*self.ch).ch_trans_count.write(|w| w.bits(count));
+        self.ch.ch_trans_count.write(|w| w.bits(count));
     }
 
     pub unsafe fn set_ctrl_and_trigger<F>(&mut self, f: F)
     where
         F: FnOnce(&mut CtrlWriter) -> &mut W<CtrlReg>,
     {
-        (*self.ch).ch_ctrl_trig.write(f);
+        self.ch.ch_ctrl_trig.write(f);
     }
 
     pub fn wait(&self) {
-        unsafe { while (*self.ch).ch_trans_count.read().bits() > 0 {} }
+        while self.ch.ch_trans_count.read().bits() > 0 {}
     }
 }
 

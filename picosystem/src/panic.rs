@@ -24,8 +24,7 @@ unsafe fn HardFault(_: &ExceptionFrame) -> ! {
 }
 
 unsafe fn turn_on_leds() {
-    const SIO_REGS: *mut pac::sio::RegisterBlock = 0xd0000000 as *mut pac::sio::RegisterBlock;
-    (*SIO_REGS)
+    (*pac::SIO::PTR)
         .gpio_out_set
         .write(|w| w.bits((1 << 13) | (1 << 14) | (1 << 15)));
 }
