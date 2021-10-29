@@ -5,6 +5,7 @@ mod draw;
 mod life;
 mod maze;
 mod music;
+mod tanks;
 
 use cortex_m_rt::entry;
 use log::info;
@@ -50,6 +51,10 @@ fn main() -> ! {
         MenuItem {
             name: "music",
             main: music::main,
+        },
+        MenuItem {
+            name: "tanks",
+            main: tanks::main,
         },
     ];
 
