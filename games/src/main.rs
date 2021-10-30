@@ -2,6 +2,7 @@
 #![no_main]
 
 mod draw;
+mod hangman;
 mod life;
 mod maze;
 mod music;
@@ -55,6 +56,10 @@ fn main() -> ! {
         MenuItem {
             name: "tanks",
             main: tanks::main,
+        },
+        MenuItem {
+            name: "hangman",
+            main: hangman::main,
         },
     ];
 
