@@ -1,11 +1,12 @@
 use image::io::Reader as ImageReader;
 use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{parse_macro_input, Ident, LitStr, Token};
+use syn::{parse_macro_input, Ident, LitInt, LitStr, Token};
 
 struct Sprite {
     function_name: Ident,
     path: LitStr,
+    width: LitInt,
 }
 
 impl Parse for Sprite {
@@ -13,9 +14,12 @@ impl Parse for Sprite {
         let function_name = input.parse()?;
         input.parse::<Token![,]>()?;
         let path = input.parse()?;
+        input.parse::<Token![,]>()?;
+        let width = input.parse()?;
         Ok(Sprite {
             function_name,
             path,
+            width,
         })
     }
 }
@@ -25,11 +29,14 @@ pub fn sprite(input: TokenStream) -> TokenStream {
     let Sprite {
         function_name,
         path,
+        width,
     } = parse_macro_input!(input as Sprite);
+    let width = width.base10_parse::<u32>().unwrap();
     let img = ImageReader::open(path.value())
         .expect(&format!("Could not load image {:?}", &path))
         .decode()
         .expect(&format!("Could not decode image {:?}", &path))
+        .resize(width, 240, image::imageops::FilterType::Triangle)
         .into_rgba8();
     let transparent_color = 0;
     let data: Vec<u16> = img
