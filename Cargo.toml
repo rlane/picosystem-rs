@@ -6,6 +6,7 @@ members = [
     "picosystem",
     "games",
 ]
+exclude = ["picosystem_macros"]
 
 [patch.crates-io]
 rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }
