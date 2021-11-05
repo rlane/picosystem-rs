@@ -7,7 +7,7 @@ use log::{Level, Metadata, Record};
 use pico::hal;
 use pico::hal::pac;
 use pico::hal::pac::interrupt;
-use usb_device::{class_prelude::*, prelude::*};
+use usb_device::{class_prelude::*, device::UsbDeviceState, prelude::*};
 use usbd_serial::SerialPort;
 
 /// The USB Device Driver (shared with the interrupt).
@@ -58,6 +58,17 @@ pub fn init(
     unsafe {
         pac::NVIC::unmask(hal::pac::Interrupt::USBCTRL_IRQ);
     };
+}
+
+pub fn connected() -> bool {
+    unsafe {
+        USB_DEVICE
+            .as_ref()
+            .map(|d| {
+                d.state() == UsbDeviceState::Addressed || d.state() == UsbDeviceState::Configured
+            })
+            .unwrap_or(false)
+    }
 }
 
 #[allow(non_snake_case)]
