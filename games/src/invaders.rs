@@ -55,8 +55,8 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         size: player_img.bounding_box().size,
         dead: false,
     };
-    let mut lasers: Vec<Entity, 32> = Vec::new();
-    let mut enemies: Vec<Entity, 32> = Vec::new();
+    let mut lasers: Vec<Entity, 3> = Vec::new();
+    let mut enemies: Vec<Entity, 10> = Vec::new();
     let mut tick = 0;
     let mut score = 0;
     let mut enemy_countdown = 0;
@@ -113,7 +113,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 size: enemy_img.bounding_box().size,
                 dead: false,
             });
-            enemy_countdown = rng.rand_range(30..100);
+            enemy_countdown = 1 + rng.rand_range(0..((score.min(255) as u8).leading_zeros() * 32));
         }
 
         for l in lasers.iter_mut() {
