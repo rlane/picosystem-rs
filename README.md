@@ -23,6 +23,16 @@ Put the PicoSystem into USB boot mode, mount the drive, then:
 cargo run --release
 ```
 
+## Demo Games
+
+ * Maze
+ * Draw
+ * Life
+ * Music
+ * Tanks
+ * Hangman
+ * Invaders
+
 ## License
 
 Licensed under either of
