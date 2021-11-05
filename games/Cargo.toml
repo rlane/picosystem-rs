@@ -20,3 +20,4 @@ oorandom = "11.*"
 heapless = "0.7"
 picosystem = { path = "../picosystem" }
 micromath = { version = "2.0", features = ["vector"] }
+picosystem_macros = { path = "../picosystem_macros" }

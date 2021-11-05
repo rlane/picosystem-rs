@@ -3,6 +3,7 @@
 
 mod draw;
 mod hangman;
+mod invaders;
 mod life;
 mod maze;
 mod music;
@@ -60,6 +61,10 @@ fn main() -> ! {
         MenuItem {
             name: "hangman",
             main: hangman::main,
+        },
+        MenuItem {
+            name: "invaders",
+            main: invaders::main,
         },
     ];
 
