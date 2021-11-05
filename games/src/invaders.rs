@@ -60,6 +60,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut tick = 0;
     let mut score = 0;
     let mut enemy_countdown = 0;
+    let mut sound = Sound::Silent;
     let screen_bounding_box =
         Rectangle::new(Point::new(0, 0), Size::new(WIDTH as u32, HEIGHT as u32));
 
@@ -82,6 +83,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 size: laser_img.bounding_box().size,
                 dead: false,
             });
+            sound = Sound::LaserFired { start_tick: tick };
         }
 
         hw.display.clear(background_color).unwrap();
@@ -133,6 +135,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                     if score > 0 {
                         score -= 1;
                     }
+                    sound = Sound::EnemyEscaped { start_tick: tick };
                 }
             }
             enemy_img
@@ -147,6 +150,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                     e.dead = true;
                     l.dead = true;
                     score += 1;
+                    sound = Sound::EnemyDestroyed { start_tick: tick };
                 }
             }
         }
@@ -158,8 +162,50 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             .translate(player.top_left())
             .draw(&mut hw.display)
             .unwrap();
+
+        sound.play(tick, hw);
+
         hw.display.flush();
 
         tick += 1;
+    }
+}
+
+enum Sound {
+    Silent,
+    LaserFired { start_tick: i32 },
+    EnemyDestroyed { start_tick: i32 },
+    EnemyEscaped { start_tick: i32 },
+}
+
+impl Sound {
+    fn play(&self, tick: i32, hw: &mut hardware::Hardware) {
+        let freq = match self {
+            Sound::LaserFired { start_tick } => match tick - start_tick {
+                0..=1 => 500,
+                2 => 400,
+                3 => 300,
+                _ => 0,
+            },
+            Sound::EnemyDestroyed { start_tick } => match tick - start_tick {
+                0..=3 => 880,
+                _ => 0,
+            },
+            Sound::EnemyEscaped { start_tick } => match tick - start_tick {
+                0 => 200,
+                1 => 250,
+                2 => 200,
+                3 => 150,
+                4 => 100,
+                5 => 50,
+                _ => 0,
+            },
+            _ => 0,
+        };
+        if freq > 0 {
+            hw.audio.start_tone(freq);
+        } else {
+            hw.audio.stop();
+        }
     }
 }
