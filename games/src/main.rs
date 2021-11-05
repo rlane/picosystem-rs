@@ -3,6 +3,7 @@
 
 mod draw;
 mod hangman;
+mod invaders;
 mod life;
 mod maze;
 mod music;
@@ -61,6 +62,10 @@ fn main() -> ! {
             name: "hangman",
             main: hangman::main,
         },
+        MenuItem {
+            name: "invaders",
+            main: invaders::main,
+        },
     ];
 
     let mut selected_index = 0;
@@ -82,10 +87,10 @@ fn main() -> ! {
                 Rgb565::WHITE
             };
             let text_style = MonoTextStyle::new(&FONT_10X20, color);
-            const SPACING: i32 = 24;
+            const SPACING: i32 = 22;
             Text::new(
                 item.name,
-                Point::new(SPACING, (i as i32 + 1) * SPACING),
+                Point::new(8, 16 + (i as i32) * SPACING),
                 text_style,
             )
             .draw(&mut hw.display)

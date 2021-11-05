@@ -734,6 +734,7 @@ dependencies = [
  "oorandom",
  "pico",
  "picosystem",
+ "picosystem_macros",
  "rp2040-boot2",
  "rp2040-hal",
  "rp2040-pac",
