@@ -68,7 +68,7 @@ pub(crate) unsafe fn set_mem(
     dma_channel.wait();
 }
 
-pub(crate) unsafe fn copy_to_spi(
+pub(crate) unsafe fn start_copy_to_spi(
     dma_channel: &mut DmaChannel,
     src: u32,
     dst: u32,
@@ -85,5 +85,4 @@ pub(crate) unsafe fn copy_to_spi(
         w.en().set_bit();
         w
     });
-    dma_channel.wait();
 }
