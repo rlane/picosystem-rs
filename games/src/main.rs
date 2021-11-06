@@ -187,9 +187,13 @@ impl Stars {
 
     fn draw(&self, hw: &mut hardware::Hardware) {
         for star in self.stars.iter() {
-            Pixel(transform(star.p), star.color)
-                .draw(&mut hw.display)
-                .unwrap();
+            let mut color = star.color;
+            for i in 0..2 {
+                Pixel(transform(star.p) - Point::new(0, i), color)
+                    .draw(&mut hw.display)
+                    .unwrap();
+                color = Rgb565::new(color.r() / 2, color.g() / 2, color.b() / 2);
+            }
         }
     }
 }
