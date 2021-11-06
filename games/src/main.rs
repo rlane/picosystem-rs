@@ -12,6 +12,7 @@ mod tanks;
 use cortex_m_rt::entry;
 use log::info;
 use picosystem::display::{HEIGHT, WIDTH};
+use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
 use picosystem::time;
 
@@ -74,6 +75,8 @@ fn main() -> ! {
     let mut stars = Stars::new();
     stars.populate();
 
+    let mut fps_monitor = FpsMonitor::new();
+
     loop {
         if hw.input.dpad_up.is_pressed() && selected_index > 0 {
             selected_index -= 1;
@@ -107,6 +110,7 @@ fn main() -> ! {
         hw.display.flush();
 
         stars.update();
+        fps_monitor.update();
     }
 
     hw.display.clear(Rgb565::BLACK).unwrap();

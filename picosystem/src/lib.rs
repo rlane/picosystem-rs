@@ -3,6 +3,7 @@
 pub mod audio;
 pub mod display;
 pub mod dma;
+pub mod fps_monitor;
 pub mod hardware;
 pub mod input;
 pub mod panic;
