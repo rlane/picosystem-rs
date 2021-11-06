@@ -47,7 +47,17 @@ impl Hardware {
             &mut pac.RESETS,
             clocks.usb_clock,
         );
-        delay.delay_ms(1500);
+
+        #[cfg(feature = "wait-for-serial")]
+        {
+            // Wait for USB to be ready.
+            delay.delay_ms(500);
+            if usb_logger::connected() {
+                // Wait for serial logger.
+                delay.delay_ms(1000);
+            }
+        }
+
         log::info!("Logging initialized");
 
         let sio = hal::sio::Sio::new(pac.SIO);
