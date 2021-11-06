@@ -177,6 +177,7 @@ impl Stars {
         }
     }
 
+    #[allow(clippy::assign_op_pattern)]
     fn update(&mut self) {
         for i in 0..self.stars.len() {
             self.stars[i].p = self.stars[i].p + self.stars[i].v;

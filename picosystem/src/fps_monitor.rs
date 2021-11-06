@@ -9,6 +9,7 @@ pub struct FpsMonitor {
 impl FpsMonitor {
     const FPS_INTERVAL_US: u32 = 1_000_000;
 
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             last_time_us: time::time_us(),

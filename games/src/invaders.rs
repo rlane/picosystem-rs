@@ -32,7 +32,7 @@ impl Entity {
     }
 
     fn intersects_bb(&self, other: &Rectangle) -> bool {
-        self.bounding_box().intersection(&other).size != Size::new(0, 0)
+        self.bounding_box().intersection(other).size != Size::new(0, 0)
     }
 
     fn intersects(&self, other: &Entity) -> bool {
