@@ -7,7 +7,7 @@ use embedded_graphics::{
     prelude::*,
 };
 use embedded_hal::blocking::delay::DelayUs;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{InputPin, OutputPin};
 use embedded_hal::spi::MODE_3;
 use embedded_time::rate::*;
 use hal::pac;
@@ -17,7 +17,7 @@ use rp2040_hal as hal;
 use rp2040_hal::gpio::dynpin::DynFunction;
 use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::dynpin::DynPinMode;
-use st7789::ST7789;
+use st7789::{TearingEffect, ST7789};
 
 pub const WIDTH: usize = 240;
 pub const HEIGHT: usize = 240;
@@ -34,6 +34,7 @@ pub type RealDisplay =
 pub struct Display {
     st7789: RealDisplay,
     backlight_pin: DynPin,
+    lcd_vsync_pin: DynPin,
     dma_channel: DmaChannel,
 }
 
@@ -74,10 +75,12 @@ impl Display {
         let di = SPIInterfaceNoCS::new(spi, lcd_dc_pin);
         let mut st7789 = ST7789::new(di, lcd_reset_pin, WIDTH as u16, HEIGHT as u16);
         st7789.init(delay_source).unwrap();
+        st7789.set_tearing_effect(TearingEffect::Vertical).unwrap();
         let mut display = Display {
             st7789,
             backlight_pin,
             dma_channel,
+            lcd_vsync_pin,
         };
         // A single clear occasionally fails to clear the screen.
         for _ in 0..2 {
@@ -93,6 +96,7 @@ impl Display {
     }
 
     pub fn flush(&mut self) {
+        self.wait_for_vsync();
         unsafe {
             dma::copy_to_spi(
                 &mut self.dma_channel,
@@ -110,6 +114,11 @@ impl Display {
 
     pub fn disable_backlight(&mut self) {
         self.backlight_pin.set_low().unwrap();
+    }
+
+    pub fn wait_for_vsync(&mut self) {
+        while self.lcd_vsync_pin.is_high().unwrap() {}
+        while self.lcd_vsync_pin.is_low().unwrap() {}
     }
 }
 

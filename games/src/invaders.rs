@@ -6,6 +6,7 @@ use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::text::{Alignment, Text};
 use heapless::Vec;
 use picosystem::display::{HEIGHT, WIDTH};
+use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
 use picosystem::time;
 use picosystem_macros::sprite;
@@ -31,7 +32,7 @@ impl Entity {
     }
 
     fn intersects_bb(&self, other: &Rectangle) -> bool {
-        self.bounding_box().intersection(&other).size != Size::new(0, 0)
+        self.bounding_box().intersection(other).size != Size::new(0, 0)
     }
 
     fn intersects(&self, other: &Entity) -> bool {
@@ -63,6 +64,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut sound = Sound::Silent;
     let screen_bounding_box =
         Rectangle::new(Point::new(0, 0), Size::new(WIDTH as u32, HEIGHT as u32));
+    let mut fps_monitor = FpsMonitor::new();
 
     loop {
         if hw.input.dpad_left.is_held() && player.p.x > 0 {
@@ -166,6 +168,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         sound.play(tick, hw);
 
         hw.display.flush();
+        fps_monitor.update();
 
         tick += 1;
     }

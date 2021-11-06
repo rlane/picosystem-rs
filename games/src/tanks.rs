@@ -70,7 +70,7 @@ fn run_game(hw: &mut hardware::Hardware) {
                 tank.angle -= angle_inc;
             } else if hw.input.button_a.is_pressed() {
                 info!("Firing angle={} power={}", tank.angle, tank.power);
-                if fire_shot(hw, &mut terrain, &tank, &other) {
+                if fire_shot(hw, &mut terrain, tank, other) {
                     info!("Shot hit");
                     break;
                 }
