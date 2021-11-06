@@ -79,12 +79,15 @@ impl Display {
             backlight_pin,
             dma_channel,
         };
-        let colors =
-            core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
-        display
-            .st7789
-            .set_pixels(0, 0, (WIDTH - 1) as u16, (HEIGHT - 1) as u16, colors)
-            .unwrap();
+        // A single clear occasionally fails to clear the screen.
+        for _ in 0..2 {
+            let colors =
+                core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
+            display
+                .st7789
+                .set_pixels(0, 0, (WIDTH - 1) as u16, (HEIGHT - 1) as u16, colors)
+                .unwrap();
+        }
         display.enable_backlight();
         display
     }
