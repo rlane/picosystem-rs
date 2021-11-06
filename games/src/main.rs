@@ -11,13 +11,14 @@ mod tanks;
 
 use cortex_m_rt::entry;
 use log::info;
+use picosystem::display::{HEIGHT, WIDTH};
 use picosystem::hardware;
 
 use embedded_graphics::{
     mono_font::{ascii::FONT_10X20, MonoTextStyle},
     pixelcolor::Rgb565,
     prelude::*,
-    text::Text,
+    text::{Alignment, Text},
 };
 
 #[link_section = ".boot2"]
@@ -88,10 +89,12 @@ fn main() -> ! {
             };
             let text_style = MonoTextStyle::new(&FONT_10X20, color);
             const SPACING: i32 = 22;
-            Text::new(
+            let y_offset = (HEIGHT as i32 - items.len() as i32 * SPACING) / 2;
+            Text::with_alignment(
                 item.name,
-                Point::new(8, 16 + (i as i32) * SPACING),
+                Point::new(WIDTH as i32 / 2, y_offset + (i as i32) * SPACING),
                 text_style,
+                Alignment::Center,
             )
             .draw(&mut hw.display)
             .unwrap();
