@@ -22,7 +22,7 @@ fn main() -> ! {
     let mut y: i32 = 0;
     loop {
         hw.display.draw(|display| {
-            display.clear(Rgb565::BLACK).unwrap();
+            display.clear(Rgb565::CSS_DARK_RED).unwrap();
             for i in 0..240 {
                 if i % 16 == 0 {
                     Line::new(Point::new(x + i, 0), Point::new(x + i, 239))
