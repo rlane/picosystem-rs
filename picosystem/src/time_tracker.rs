@@ -18,7 +18,7 @@ impl TimeTracker {
         }
     }
 
-    pub fn run<F: FnOnce() -> ()>(&mut self, func: F) {
+    pub fn run<F: FnOnce()>(&mut self, func: F) {
         let start = time::time_us();
         func();
         let end = time::time_us();
