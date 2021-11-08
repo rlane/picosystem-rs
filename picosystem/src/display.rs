@@ -96,7 +96,6 @@ impl Display {
     }
 
     fn start_flush(&mut self) {
-        self.wait_for_vsync();
         unsafe {
             dma::start_copy_to_spi(
                 &mut self.dma_channel,
@@ -113,6 +112,7 @@ impl Display {
     }
 
     pub fn flush(&mut self) {
+        self.wait_for_vsync();
         self.start_flush();
         self.wait_for_flush();
     }
@@ -120,6 +120,7 @@ impl Display {
     pub fn draw(&mut self, func: impl FnOnce(&mut Self)) {
         self.wait_for_flush();
         func(self);
+        self.wait_for_vsync();
         self.start_flush();
     }
 
