@@ -143,17 +143,17 @@ impl Hardware {
 
         let mut clocks = ClocksManager::new(clocks_dev);
 
-        const PLL_SYS_166MHZ: PLLConfig<Megahertz> = PLLConfig {
-            vco_freq: Megahertz(1500),
+        const PLL_SYS_180MHZ: PLLConfig<Megahertz> = PLLConfig {
+            vco_freq: Megahertz(720),
             refdiv: 1,
-            post_div1: 3,
-            post_div2: 3,
+            post_div1: 4,
+            post_div2: 1,
         };
 
         let pll_sys = setup_pll_blocking(
             pll_sys_dev,
             xosc.operating_frequency().into(),
-            PLL_SYS_166MHZ,
+            PLL_SYS_180MHZ,
             &mut clocks,
             resets,
         )
