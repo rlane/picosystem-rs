@@ -4,9 +4,15 @@ use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
 use pico::hal;
 use pico::hal::pac;
-use pico::hal::prelude::*;
 use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::Pins;
+
+use rp2040_hal::{
+    clocks::{Clock, ClocksManager, InitError},
+    pll::{common_configs::PLL_USB_48MHZ, setup_pll_blocking, PLLConfig},
+    watchdog::Watchdog,
+    xosc::setup_xosc_blocking,
+};
 
 pub struct Hardware {
     pub display: Display,
@@ -26,7 +32,7 @@ impl Hardware {
         let mut watchdog = hal::watchdog::Watchdog::new(pac.WATCHDOG);
 
         // The default is to generate a 125 MHz system clock
-        let clocks = hal::clocks::init_clocks_and_plls(
+        let clocks = Self::init_clocks_and_plls(
             pico::XOSC_CRYSTAL_FREQ,
             pac.XOSC,
             pac.CLOCKS,
@@ -59,6 +65,8 @@ impl Hardware {
         }
 
         log::info!("Logging initialized");
+
+        log::info!("System clock: {}", clocks.system_clock.freq());
 
         let sio = hal::sio::Sio::new(pac.SIO);
         let pins = Pins::new(
@@ -115,5 +123,53 @@ impl Hardware {
             input,
             audio,
         }
+    }
+
+    // Copied and modified from rp2040_hal crate.
+    fn init_clocks_and_plls(
+        xosc_crystal_freq: u32,
+        xosc_dev: pac::XOSC,
+        clocks_dev: pac::CLOCKS,
+        pll_sys_dev: pac::PLL_SYS,
+        pll_usb_dev: pac::PLL_USB,
+        resets: &mut pac::RESETS,
+        watchdog: &mut Watchdog,
+    ) -> Result<ClocksManager, InitError> {
+        let xosc =
+            setup_xosc_blocking(xosc_dev, xosc_crystal_freq.Hz()).map_err(InitError::XoscErr)?;
+
+        // Configure watchdog tick generation to tick over every microsecond
+        watchdog.enable_tick_generation((xosc_crystal_freq / 1_000_000) as u8);
+
+        let mut clocks = ClocksManager::new(clocks_dev);
+
+        const PLL_SYS_166MHZ: PLLConfig<Megahertz> = PLLConfig {
+            vco_freq: Megahertz(1500),
+            refdiv: 1,
+            post_div1: 3,
+            post_div2: 3,
+        };
+
+        let pll_sys = setup_pll_blocking(
+            pll_sys_dev,
+            xosc.operating_frequency().into(),
+            PLL_SYS_166MHZ,
+            &mut clocks,
+            resets,
+        )
+        .map_err(InitError::PllError)?;
+        let pll_usb = setup_pll_blocking(
+            pll_usb_dev,
+            xosc.operating_frequency().into(),
+            PLL_USB_48MHZ,
+            &mut clocks,
+            resets,
+        )
+        .map_err(InitError::PllError)?;
+
+        clocks
+            .init_default(&xosc, &pll_sys, &pll_usb)
+            .map_err(InitError::ClockError)?;
+        Ok(clocks)
     }
 }
