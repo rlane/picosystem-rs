@@ -22,20 +22,17 @@ fn main() -> ! {
 
     let center = Point::new(119, 119);
     let mut sizes: Vec<f32, 32> = Vec::new();
-    let multiplier = 1.01;
-    let initial_size = 1.0;
+    let multiplier = 1.02;
+    let initial_size = 3.0;
     let mut fps_monitor = FpsMonitor::new();
-    let interval = 60;
+    let interval = 25;
     let mut countdown = 0;
 
     loop {
-        for size in sizes.iter_mut() {
-            *size *= multiplier;
-        }
-
         sizes = sizes
             .iter()
             .cloned()
+            .map(|size| size * multiplier)
             .filter(|size| *size < WIDTH as f32)
             .collect();
 
@@ -49,6 +46,7 @@ fn main() -> ! {
         hw.display.draw(|display| {
             display.clear(Rgb565::CSS_DARK_SLATE_BLUE).unwrap();
             for &size in sizes.iter() {
+                let size = size as u32 | 1;
                 Rectangle::with_center(center, Size::new(size as u32, size as u32))
                     .into_styled(PrimitiveStyle::with_stroke(Rgb565::GREEN, 1))
                     .draw(display)
