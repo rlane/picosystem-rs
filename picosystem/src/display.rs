@@ -95,10 +95,9 @@ impl Display {
         display
     }
 
-    pub fn flush(&mut self) {
-        self.wait_for_vsync();
+    fn start_flush(&mut self) {
         unsafe {
-            dma::copy_to_spi(
+            dma::start_copy_to_spi(
                 &mut self.dma_channel,
                 framebuffer().as_ptr() as u32,
                 (*pac::SPI0::PTR).sspdr.as_ptr() as u32,
@@ -106,6 +105,23 @@ impl Display {
                 (WIDTH * HEIGHT * 2) as u32,
             );
         }
+    }
+
+    fn wait_for_flush(&mut self) {
+        self.dma_channel.wait();
+    }
+
+    pub fn flush(&mut self) {
+        self.wait_for_vsync();
+        self.start_flush();
+        self.wait_for_flush();
+    }
+
+    pub fn draw(&mut self, func: impl FnOnce(&mut Self)) {
+        self.wait_for_flush();
+        func(self);
+        self.wait_for_vsync();
+        self.start_flush();
     }
 
     pub fn enable_backlight(&mut self) {

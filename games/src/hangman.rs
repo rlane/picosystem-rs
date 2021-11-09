@@ -105,163 +105,166 @@ fn draw(
     errors: u8,
     letter_index: i32,
 ) {
-    hw.display.clear(Rgb565::BLACK).unwrap();
-    const LETTER_WIDTH: i32 = 10;
+    hw.display.draw(|display| {
+        display.clear(Rgb565::BLACK).unwrap();
+        const LETTER_WIDTH: i32 = 10;
 
-    let mut guess = Word::new();
-    for ch in target.chars() {
-        if guessed.contains(&ch) {
-            guess.push(ch).unwrap();
-        } else {
-            guess.push('_').unwrap();
+        let mut guess = Word::new();
+        for ch in target.chars() {
+            if guessed.contains(&ch) {
+                guess.push(ch).unwrap();
+            } else {
+                guess.push('_').unwrap();
+            }
         }
-    }
-    let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
-    Text::new(
-        &guess,
-        Point::new((WIDTH as i32 - LETTER_WIDTH * guess.len() as i32) / 2, 160),
-        text_style,
-    )
-    .draw(&mut hw.display)
-    .unwrap();
-
-    let mut letters = heapless::String::<26>::new();
-    let mut crosses = heapless::String::<26>::new();
-    const LETTERS_DISPLAYED: i32 = 9;
-    for i in 0..LETTERS_DISPLAYED {
-        let offset = i - LETTERS_DISPLAYED / 2;
-        let ch = letter_from_index(letter_index + offset);
-        if offset != 0 {
-            letters.push(ch).unwrap();
-        } else {
-            letters.push(' ').unwrap();
-        }
-        if guessed.contains(&ch) {
-            crosses.push('X').unwrap();
-        } else {
-            crosses.push(' ').unwrap();
-        }
-    }
-    Text::new(
-        &letters,
-        Point::new((WIDTH as i32 - LETTERS_DISPLAYED * LETTER_WIDTH) / 2, 200),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_LIGHT_SLATE_GRAY),
-    )
-    .draw(&mut hw.display)
-    .unwrap();
-
-    letters.clear();
-    letters.push(letter_from_index(letter_index)).unwrap();
-    Text::new(
-        &letters,
-        Point::new((WIDTH as i32 - LETTER_WIDTH) / 2, 199),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN),
-    )
-    .draw(&mut hw.display)
-    .unwrap();
-
-    Text::new(
-        &crosses,
-        Point::new((WIDTH as i32 - LETTERS_DISPLAYED * LETTER_WIDTH) / 2, 202),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_DARK_RED),
-    )
-    .draw(&mut hw.display)
-    .unwrap();
-
-    let mid = WIDTH as i32 / 2;
-    let top = 30;
-
-    {
-        let style = PrimitiveStyleBuilder::new()
-            .stroke_color(Rgb565::RED)
-            .stroke_width(1)
-            .build();
-        if errors > 0 {
-            let head = Circle::with_center(Point::new(mid, top + 10), 20).into_styled(style);
-            head.draw(&mut hw.display).unwrap();
-        }
-
-        if errors > 1 {
-            let body =
-                Line::new(Point::new(mid, top + 20), Point::new(mid, top + 60)).into_styled(style);
-            body.draw(&mut hw.display).unwrap();
-        }
-
-        if errors > 2 {
-            let left_arm = Line::new(Point::new(mid, top + 30), Point::new(mid - 15, top + 40))
-                .into_styled(style);
-            left_arm.draw(&mut hw.display).unwrap();
-        }
-
-        if errors > 3 {
-            let right_arm = Line::new(Point::new(mid, top + 30), Point::new(mid + 15, top + 40))
-                .into_styled(style);
-            right_arm.draw(&mut hw.display).unwrap();
-        }
-
-        if errors > 4 {
-            let left_leg = Line::new(Point::new(mid, top + 60), Point::new(mid - 10, top + 80))
-                .into_styled(style);
-            left_leg.draw(&mut hw.display).unwrap();
-        }
-
-        if errors > 5 {
-            let right_leg = Line::new(Point::new(mid, top + 60), Point::new(mid + 10, top + 80))
-                .into_styled(style);
-            right_leg.draw(&mut hw.display).unwrap();
-        }
-    }
-
-    {
-        let style = PrimitiveStyleBuilder::new()
-            .stroke_color(Rgb565::CSS_BROWN)
-            .stroke_width(1)
-            .build();
-
-        Line::new(
-            Point::new(mid - 60, top + 90),
-            Point::new(mid - 20, top + 90),
+        let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+        Text::new(
+            &guess,
+            Point::new((WIDTH as i32 - LETTER_WIDTH * guess.len() as i32) / 2, 160),
+            text_style,
         )
-        .into_styled(style)
-        .draw(&mut hw.display)
+        .draw(display)
         .unwrap();
 
-        Line::new(
-            Point::new(mid - 40, top - 10),
-            Point::new(mid - 40, top + 90),
+        let mut letters = heapless::String::<26>::new();
+        let mut crosses = heapless::String::<26>::new();
+        const LETTERS_DISPLAYED: i32 = 9;
+        for i in 0..LETTERS_DISPLAYED {
+            let offset = i - LETTERS_DISPLAYED / 2;
+            let ch = letter_from_index(letter_index + offset);
+            if offset != 0 {
+                letters.push(ch).unwrap();
+            } else {
+                letters.push(' ').unwrap();
+            }
+            if guessed.contains(&ch) {
+                crosses.push('X').unwrap();
+            } else {
+                crosses.push(' ').unwrap();
+            }
+        }
+        Text::new(
+            &letters,
+            Point::new((WIDTH as i32 - LETTERS_DISPLAYED * LETTER_WIDTH) / 2, 200),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_LIGHT_SLATE_GRAY),
         )
-        .into_styled(style)
-        .draw(&mut hw.display)
+        .draw(display)
         .unwrap();
 
-        Line::new(Point::new(mid - 40, top - 10), Point::new(mid, top - 10))
+        letters.clear();
+        letters.push(letter_from_index(letter_index)).unwrap();
+        Text::new(
+            &letters,
+            Point::new((WIDTH as i32 - LETTER_WIDTH) / 2, 199),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN),
+        )
+        .draw(display)
+        .unwrap();
+
+        Text::new(
+            &crosses,
+            Point::new((WIDTH as i32 - LETTERS_DISPLAYED * LETTER_WIDTH) / 2, 202),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_DARK_RED),
+        )
+        .draw(display)
+        .unwrap();
+
+        let mid = WIDTH as i32 / 2;
+        let top = 30;
+
+        {
+            let style = PrimitiveStyleBuilder::new()
+                .stroke_color(Rgb565::RED)
+                .stroke_width(1)
+                .build();
+            if errors > 0 {
+                let head = Circle::with_center(Point::new(mid, top + 10), 20).into_styled(style);
+                head.draw(display).unwrap();
+            }
+
+            if errors > 1 {
+                let body = Line::new(Point::new(mid, top + 20), Point::new(mid, top + 60))
+                    .into_styled(style);
+                body.draw(display).unwrap();
+            }
+
+            if errors > 2 {
+                let left_arm = Line::new(Point::new(mid, top + 30), Point::new(mid - 15, top + 40))
+                    .into_styled(style);
+                left_arm.draw(display).unwrap();
+            }
+
+            if errors > 3 {
+                let right_arm =
+                    Line::new(Point::new(mid, top + 30), Point::new(mid + 15, top + 40))
+                        .into_styled(style);
+                right_arm.draw(display).unwrap();
+            }
+
+            if errors > 4 {
+                let left_leg = Line::new(Point::new(mid, top + 60), Point::new(mid - 10, top + 80))
+                    .into_styled(style);
+                left_leg.draw(display).unwrap();
+            }
+
+            if errors > 5 {
+                let right_leg =
+                    Line::new(Point::new(mid, top + 60), Point::new(mid + 10, top + 80))
+                        .into_styled(style);
+                right_leg.draw(display).unwrap();
+            }
+        }
+
+        {
+            let style = PrimitiveStyleBuilder::new()
+                .stroke_color(Rgb565::CSS_BROWN)
+                .stroke_width(1)
+                .build();
+
+            Line::new(
+                Point::new(mid - 60, top + 90),
+                Point::new(mid - 20, top + 90),
+            )
             .into_styled(style)
-            .draw(&mut hw.display)
+            .draw(display)
             .unwrap();
 
-        Line::new(Point::new(mid, top - 10), Point::new(mid, top))
+            Line::new(
+                Point::new(mid - 40, top - 10),
+                Point::new(mid - 40, top + 90),
+            )
             .into_styled(style)
-            .draw(&mut hw.display)
+            .draw(display)
             .unwrap();
-    }
 
-    hw.display.flush();
+            Line::new(Point::new(mid - 40, top - 10), Point::new(mid, top - 10))
+                .into_styled(style)
+                .draw(display)
+                .unwrap();
+
+            Line::new(Point::new(mid, top - 10), Point::new(mid, top))
+                .into_styled(style)
+                .draw(display)
+                .unwrap();
+        }
+    });
 }
 
 fn animate_win(hw: &mut hardware::Hardware) {
-    Rectangle::new(Point::new(40, 100), Size::new(160, 40))
-        .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_GREEN))
-        .draw(&mut hw.display)
+    hw.display.draw(|display| {
+        Rectangle::new(Point::new(40, 100), Size::new(160, 40))
+            .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_GREEN))
+            .draw(display)
+            .unwrap();
+        Text::with_alignment(
+            "You win!",
+            Point::new(120, 127),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
+            Alignment::Center,
+        )
+        .draw(display)
         .unwrap();
-    Text::with_alignment(
-        "You win!",
-        Point::new(120, 127),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
-        Alignment::Center,
-    )
-    .draw(&mut hw.display)
-    .unwrap();
-    hw.display.flush();
+    });
 
     hw.audio.start_tone(440);
     hw.delay.delay_ms(100);
@@ -273,20 +276,21 @@ fn animate_win(hw: &mut hardware::Hardware) {
 }
 
 fn animate_lose(hw: &mut hardware::Hardware) {
-    Rectangle::new(Point::new(40, 100), Size::new(160, 40))
-        .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_DARK_RED))
-        .draw(&mut hw.display)
+    hw.display.draw(|display| {
+        Rectangle::new(Point::new(40, 100), Size::new(160, 40))
+            .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_DARK_RED))
+            .draw(display)
+            .unwrap();
+        Text::with_alignment(
+            "You lose!",
+            Point::new(120, 127),
+            MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
+            Alignment::Center,
+        )
+        .draw(display)
         .unwrap();
-    Text::with_alignment(
-        "You lose!",
-        Point::new(120, 127),
-        MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE),
-        Alignment::Center,
-    )
-    .draw(&mut hw.display)
-    .unwrap();
+    });
 
-    hw.display.flush();
     hw.audio.start_tone(400);
     hw.delay.delay_ms(100);
     hw.audio.start_tone(200);

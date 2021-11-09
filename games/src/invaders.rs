@@ -42,8 +42,6 @@ impl Entity {
 
 pub fn main(hw: &mut hardware::Hardware) -> ! {
     let background_color = Rgb565::CSS_DARK_SLATE_BLUE;
-    hw.display.clear(background_color).unwrap();
-    hw.display.flush();
 
     let player_img = Image::new(sprite_ship(), Point::zero());
     let laser_img = Image::new(sprite_laser(), Point::zero());
@@ -88,19 +86,6 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             sound = Sound::LaserFired { start_tick: tick };
         }
 
-        hw.display.clear(background_color).unwrap();
-
-        let score_str: heapless::String<16> = heapless::String::from(score);
-        let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN);
-        Text::with_alignment(
-            &score_str,
-            Point::new(WIDTH as i32 / 2, 20),
-            text_style,
-            Alignment::Center,
-        )
-        .draw(&mut hw.display)
-        .unwrap();
-
         if enemy_countdown > 0 {
             enemy_countdown -= 1;
         }
@@ -123,10 +108,6 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             if !l.intersects_bb(&screen_bounding_box) {
                 l.dead = true;
             }
-            laser_img
-                .translate(l.top_left())
-                .draw(&mut hw.display)
-                .unwrap();
         }
 
         for e in enemies.iter_mut() {
@@ -140,10 +121,6 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                     sound = Sound::EnemyEscaped { start_tick: tick };
                 }
             }
-            enemy_img
-                .translate(e.top_left())
-                .draw(&mut hw.display)
-                .unwrap();
         }
 
         for l in lasers.iter_mut() {
@@ -160,14 +137,36 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         lasers = lasers.iter().filter(|l| !l.dead).cloned().collect();
         enemies = enemies.iter().filter(|e| !e.dead).cloned().collect();
 
-        player_img
-            .translate(player.top_left())
-            .draw(&mut hw.display)
+        hw.display.draw(|display| {
+            display.clear(background_color).unwrap();
+
+            for l in lasers.iter() {
+                laser_img.translate(l.top_left()).draw(display).unwrap();
+            }
+
+            for e in enemies.iter() {
+                enemy_img.translate(e.top_left()).draw(display).unwrap();
+            }
+
+            player_img
+                .translate(player.top_left())
+                .draw(display)
+                .unwrap();
+
+            let score_str: heapless::String<16> = heapless::String::from(score);
+            let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::GREEN);
+            Text::with_alignment(
+                &score_str,
+                Point::new(WIDTH as i32 / 2, 20),
+                text_style,
+                Alignment::Center,
+            )
+            .draw(display)
             .unwrap();
+        });
 
         sound.play(tick, hw);
 
-        hw.display.flush();
         fps_monitor.update();
 
         tick += 1;

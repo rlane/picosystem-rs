@@ -44,23 +44,34 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             }
         }
 
-        hw.display.clear(Rgb565::BLUE).unwrap();
-        for y in 0..BOARD_SIZE {
-            for x in 0..BOARD_SIZE {
-                if board.get(x, y) {
-                    let ix = (x * 2) as i32;
-                    let iy = (y * 2) as i32;
-                    Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
-                        .into_styled(
-                            PrimitiveStyleBuilder::new()
-                                .fill_color(Rgb565::WHITE)
-                                .build(),
-                        )
-                        .draw(&mut hw.display)
-                        .unwrap();
+        hw.display.draw(|display| {
+            display.clear(Rgb565::BLUE).unwrap();
+            for y in 0..BOARD_SIZE {
+                for x in 0..BOARD_SIZE {
+                    if board.get(x, y) {
+                        let ix = (x * 2) as i32;
+                        let iy = (y * 2) as i32;
+                        Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
+                            .into_styled(
+                                PrimitiveStyleBuilder::new()
+                                    .fill_color(Rgb565::WHITE)
+                                    .build(),
+                            )
+                            .draw(display)
+                            .unwrap();
+                    }
                 }
             }
-        }
+
+            {
+                let ix = (cursorx * 2) as i32;
+                let iy = (cursory * 2) as i32;
+                Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
+                    .into_styled(PrimitiveStyleBuilder::new().fill_color(Rgb565::RED).build())
+                    .draw(display)
+                    .unwrap();
+            }
+        });
 
         if hw.input.dpad_left.is_held() {
             cursorx = wrap(cursorx - 1);
@@ -80,17 +91,6 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         if hw.input.button_y.is_pressed() {
             paused = !paused;
         }
-
-        {
-            let ix = (cursorx * 2) as i32;
-            let iy = (cursory * 2) as i32;
-            Rectangle::new(Point::new(ix, iy), Size::new(2, 2))
-                .into_styled(PrimitiveStyleBuilder::new().fill_color(Rgb565::RED).build())
-                .draw(&mut hw.display)
-                .unwrap();
-        }
-
-        hw.display.flush();
 
         let now = time::time_us();
         if now - prev_time_us > 1_000_000 {

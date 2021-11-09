@@ -11,7 +11,7 @@ mod tanks;
 
 use cortex_m_rt::entry;
 use log::info;
-use picosystem::display::{HEIGHT, WIDTH};
+use picosystem::display::{Display, HEIGHT, WIDTH};
 use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
 use picosystem::time;
@@ -86,35 +86,37 @@ fn main() -> ! {
             break;
         }
 
-        hw.display.clear(Rgb565::BLACK).unwrap();
-        stars.draw(&mut hw);
+        hw.display.draw(|display| {
+            display.clear(Rgb565::BLACK).unwrap();
+            stars.draw(display);
 
-        for (i, item) in items.iter().enumerate() {
-            let color = if i == selected_index {
-                Rgb565::GREEN
-            } else {
-                Rgb565::WHITE
-            };
-            let text_style = MonoTextStyle::new(&FONT_10X20, color);
-            const SPACING: i32 = 22;
-            let y_offset = (HEIGHT as i32 - items.len() as i32 * SPACING) / 2;
-            Text::with_alignment(
-                item.name,
-                Point::new(WIDTH as i32 / 2, y_offset + (i as i32) * SPACING),
-                text_style,
-                Alignment::Center,
-            )
-            .draw(&mut hw.display)
-            .unwrap();
-        }
-        hw.display.flush();
+            for (i, item) in items.iter().enumerate() {
+                let color = if i == selected_index {
+                    Rgb565::GREEN
+                } else {
+                    Rgb565::WHITE
+                };
+                let text_style = MonoTextStyle::new(&FONT_10X20, color);
+                const SPACING: i32 = 22;
+                let y_offset = (HEIGHT as i32 - items.len() as i32 * SPACING) / 2;
+                Text::with_alignment(
+                    item.name,
+                    Point::new(WIDTH as i32 / 2, y_offset + (i as i32) * SPACING),
+                    text_style,
+                    Alignment::Center,
+                )
+                .draw(display)
+                .unwrap();
+            }
+        });
 
         stars.update();
         fps_monitor.update();
     }
 
-    hw.display.clear(Rgb565::BLACK).unwrap();
-    hw.display.flush();
+    hw.display.draw(|display| {
+        display.clear(Rgb565::BLACK).unwrap();
+    });
 
     (items[selected_index].main)(&mut hw)
 }
@@ -190,12 +192,12 @@ impl Stars {
         }
     }
 
-    fn draw(&self, hw: &mut hardware::Hardware) {
+    fn draw(&self, display: &mut Display) {
         for star in self.stars.iter() {
             let mut color = star.color;
             for i in 0..2 {
                 Pixel(transform(star.p) - Point::new(0, i), color)
-                    .draw(&mut hw.display)
+                    .draw(display)
                     .unwrap();
                 color = Rgb565::new(color.r() / 2, color.g() / 2, color.b() / 2);
             }
