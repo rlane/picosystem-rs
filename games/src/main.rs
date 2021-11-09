@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod blob;
 mod draw;
 mod hangman;
 mod invaders;
@@ -67,6 +68,10 @@ fn main() -> ! {
         MenuItem {
             name: "invaders",
             main: invaders::main,
+        },
+        MenuItem {
+            name: "blob",
+            main: blob::main,
         },
     ];
 
