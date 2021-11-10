@@ -20,6 +20,12 @@ fn world2screen(p: I32x2) -> Point {
     Point::new(x, y)
 }
 
+fn world2screen_size(p: I32x2) -> Size {
+    let x = p.x / FRAC;
+    let y = p.y / FRAC;
+    Size::new(x as u32, y as u32)
+}
+
 fn screen2world(p: Point) -> I32x2 {
     let x = p.x * FRAC;
     let y = p.y * FRAC;
@@ -40,7 +46,7 @@ struct Blob {
 }
 
 impl Blob {
-    fn intersects(&self, other: &Blob) -> bool {
+    fn intersects_blob(&self, other: &Blob) -> bool {
         let dp = self.p - other.p;
         let r_sum = self.r + other.r;
         if dp.x.abs() > r_sum || dp.y.abs() > r_sum {
@@ -48,6 +54,55 @@ impl Blob {
         }
         let dist_squared = dp.x * dp.x + dp.y * dp.y;
         dist_squared < r_sum * r_sum
+    }
+
+    fn bounding_box(&self) -> BoundingBox {
+        BoundingBox::new(
+            self.p
+                - I32x2 {
+                    x: self.r,
+                    y: self.r,
+                },
+            I32x2 {
+                x: self.r * 2,
+                y: self.r * 2,
+            },
+        )
+    }
+
+    fn intersects_wall(&self, wall: &Wall) -> bool {
+        self.bounding_box().intersects(&wall.bounding_box)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Wall {
+    bounding_box: BoundingBox,
+}
+
+#[derive(Debug, Clone)]
+struct BoundingBox {
+    min: I32x2,
+    max: I32x2,
+}
+
+impl BoundingBox {
+    fn new(min: I32x2, size: I32x2) -> Self {
+        BoundingBox {
+            min,
+            max: min + size - I32x2 { x: 1, y: 1 },
+        }
+    }
+
+    fn size(&self) -> I32x2 {
+        self.max - self.min + I32x2 { x: 1, y: 1 }
+    }
+
+    fn intersects(&self, other: &BoundingBox) -> bool {
+        self.min.x <= other.max.x
+            && self.max.x >= other.min.x
+            && self.min.y <= other.max.y
+            && self.max.y >= other.min.y
     }
 }
 
@@ -76,6 +131,26 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             dead: false,
         };
 
+        let mut wall_rng = oorandom::Rand32::new(level as u64);
+        const NUM_WALLS: usize = 4;
+        let mut walls: Vec<Wall, NUM_WALLS> = Vec::new();
+        let block_size = world_size.x as u32 / 8;
+        let num_blocks = (world_size.x as u32 / block_size) as u32;
+        while walls.len() < NUM_WALLS {
+            let mut rnd = |range| (wall_rng.rand_range(range) * block_size) as i32;
+            let x = rnd(0..num_blocks);
+            let y = rnd(0..num_blocks);
+            let w = rnd(1..3);
+            let h = rnd(1..3);
+            let wall = Wall {
+                bounding_box: BoundingBox::new(I32x2 { x, y }, I32x2 { x: w, y: h }),
+            };
+            if player.intersects_wall(&wall) {
+                continue;
+            }
+            let _ = walls.push(wall);
+        }
+
         let mut make_enemy = || {
             let s = FRAC;
             let mass = rng.rand_float() * 20.0 + 8.0;
@@ -94,10 +169,19 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             }
         };
 
+        let intersects_walls = |enemy: &Blob| -> bool {
+            for wall in walls.iter() {
+                if enemy.intersects_wall(wall) {
+                    return true;
+                }
+            }
+            false
+        };
+
         let mut blobs: Vec<Blob, 128> = Vec::new();
-        for _ in 0..level {
+        while blobs.len() < level {
             let enemy = make_enemy();
-            if !player.intersects(&enemy) {
+            if !player.intersects_blob(&enemy) && !intersects_walls(&enemy) {
                 let _ = blobs.push(enemy);
             }
         }
@@ -152,31 +236,60 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 y: dampen(player.v.y),
             };
 
-            let do_physics = |blob: &mut Blob| {
+            let do_physics = |blob: &mut Blob, walls: &[Wall]| {
                 blob.p += blob.v;
+
                 if blob.p.x < blob.r || blob.p.x >= world_size.x - blob.r {
                     blob.v.x = -blob.v.x;
                 }
-                blob.p.x = blob.p.x.clamp(blob.r, world_size.x - blob.r);
                 if blob.p.y < blob.r || blob.p.y >= world_size.y - blob.r {
                     blob.v.y = -blob.v.y;
                 }
+
+                for wall in walls.iter() {
+                    if blob.intersects_wall(wall) {
+                        blob.p -= blob.v;
+                        let mut intrusion = I32x2 { x: 0, y: 0 };
+
+                        if blob.p.x < wall.bounding_box.min.x + blob.r {
+                            intrusion.x = wall.bounding_box.min.x + blob.r - blob.p.x;
+                        } else if blob.p.x > wall.bounding_box.max.x - blob.r {
+                            intrusion.x = blob.p.x - (wall.bounding_box.max.x - blob.r);
+                        }
+
+                        if blob.p.y < wall.bounding_box.min.y + blob.r {
+                            intrusion.y = wall.bounding_box.min.y + blob.r - blob.p.y;
+                        } else if blob.p.y > wall.bounding_box.max.y - blob.r {
+                            intrusion.y = blob.p.y - (wall.bounding_box.max.y - blob.r);
+                        }
+
+                        if intrusion.x > intrusion.y {
+                            blob.v.x = -blob.v.x;
+                        } else {
+                            blob.v.y = -blob.v.y;
+                        }
+
+                        break;
+                    }
+                }
+
+                blob.p.x = blob.p.x.clamp(blob.r, world_size.x - blob.r);
                 blob.p.y = blob.p.y.clamp(blob.r, world_size.y - blob.r);
             };
 
-            do_physics(&mut player);
+            do_physics(&mut player, &walls);
             hw.audio.stop();
             for blob in blobs.iter_mut() {
                 if blob.dead {
                     continue;
                 }
-                if player.intersects(blob) {
+                if player.intersects_blob(blob) {
                     blob.dead = true;
                     player.mass += blob.mass;
                     player.r = mass2radius(player.mass).min(world_size.x - 20);
                     hw.audio.start_tone(440 * 3);
                 } else {
-                    do_physics(blob);
+                    do_physics(blob, &walls);
                 }
             }
 
@@ -244,6 +357,20 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                         )
                         .draw(display)
                         .unwrap();
+                }
+
+                for wall in walls.iter() {
+                    Rectangle::new(
+                        world2screen(wall.bounding_box.min),
+                        world2screen_size(wall.bounding_box.size()),
+                    )
+                    .into_styled(
+                        PrimitiveStyleBuilder::new()
+                            .fill_color(Rgb565::CSS_GRAY)
+                            .build(),
+                    )
+                    .draw(display)
+                    .unwrap();
                 }
             });
 
