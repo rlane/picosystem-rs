@@ -144,7 +144,7 @@ impl Hardware {
         let mut clocks = ClocksManager::new(clocks_dev);
 
         const PLL_SYS_180MHZ: PLLConfig<Megahertz> = PLLConfig {
-            vco_freq: Megahertz(720),
+            vco_freq: Megahertz(716),
             refdiv: 1,
             post_div1: 4,
             post_div2: 1,

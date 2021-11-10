@@ -1,13 +1,16 @@
 #![no_std]
 #![no_main]
 
+mod blob;
 mod draw;
 mod hangman;
 mod invaders;
 mod life;
 mod maze;
-mod music;
 mod tanks;
+
+#[cfg(feature = "music")]
+mod music;
 
 use cortex_m_rt::entry;
 use log::info;
@@ -52,6 +55,7 @@ fn main() -> ! {
             name: "life",
             main: life::main,
         },
+        #[cfg(feature = "music")]
         MenuItem {
             name: "music",
             main: music::main,
@@ -67,6 +71,10 @@ fn main() -> ! {
         MenuItem {
             name: "invaders",
             main: invaders::main,
+        },
+        MenuItem {
+            name: "blob",
+            main: blob::main,
         },
     ];
 
