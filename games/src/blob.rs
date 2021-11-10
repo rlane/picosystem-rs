@@ -279,7 +279,10 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
 
                         if intrusion.x > intrusion.y {
                             blob.v.x = -blob.v.x;
+                        } else if intrusion.x < intrusion.y {
+                            blob.v.y = -blob.v.y;
                         } else {
+                            blob.v.x = -blob.v.x;
                             blob.v.y = -blob.v.y;
                         }
 
