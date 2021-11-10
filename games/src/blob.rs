@@ -262,7 +262,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
 
                 for wall in walls.iter() {
                     if blob.intersects_wall(wall) {
-                        blob.p -= blob.v;
+                        blob.p -= blob.v * 2;
                         let mut intrusion = I32x2 { x: 0, y: 0 };
 
                         if blob.p.x < wall.bounding_box.min.x + blob.r {
