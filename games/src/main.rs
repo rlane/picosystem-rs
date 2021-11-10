@@ -7,8 +7,10 @@ mod hangman;
 mod invaders;
 mod life;
 mod maze;
-mod music;
 mod tanks;
+
+#[cfg(feature = "music")]
+mod music;
 
 use cortex_m_rt::entry;
 use log::info;
@@ -53,6 +55,7 @@ fn main() -> ! {
             name: "life",
             main: life::main,
         },
+        #[cfg(feature = "music")]
         MenuItem {
             name: "music",
             main: music::main,

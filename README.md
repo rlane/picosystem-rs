@@ -28,7 +28,6 @@ cargo run --release
  * Maze
  * Draw
  * Life
- * Music
  * Tanks
  * Hangman
  * Invaders
