@@ -306,7 +306,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                     player.r = mass2radius(player.mass).min(world_size.x - 20);
                     hw.audio.start_tone(440 * 3);
                 } else {
-                    let m = FRAC * level as i32 / 8;
+                    let m = FRAC * level as i32 / 16;
                     let mut rnd = || rng.rand_range(0..(m as u32 * 2)) as i32 - m;
                     blob.v += I32x2 { x: rnd(), y: rnd() };
                     let dampen = |v| v * (128 - level as i32) / 128;
