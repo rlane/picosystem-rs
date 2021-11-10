@@ -71,7 +71,27 @@ impl Blob {
     }
 
     fn intersects_wall(&self, wall: &Wall) -> bool {
-        self.bounding_box().intersects(&wall.bounding_box)
+        let wbb = &wall.bounding_box;
+        if !self.bounding_box().intersects(wbb) {
+            return false;
+        }
+
+        let dp = self.p - wall.bounding_box.center();
+        let dp = I32x2 {
+            x: dp.x.abs(),
+            y: dp.y.abs(),
+        };
+
+        if dp.x > wbb.size().x / 2 && dp.y > wbb.size().y / 2 {
+            let dc = dp
+                - I32x2 {
+                    x: wbb.size().x / 2,
+                    y: wbb.size().y / 2,
+                };
+            return dc.x * dc.x + dc.y * dc.y < self.r * self.r;
+        }
+
+        true
     }
 }
 
@@ -103,6 +123,14 @@ impl BoundingBox {
             && self.max.x >= other.min.x
             && self.min.y <= other.max.y
             && self.max.y >= other.min.y
+    }
+
+    fn center(&self) -> I32x2 {
+        let a = self.min + self.max;
+        I32x2 {
+            x: a.x / 2,
+            y: a.y / 2,
+        }
     }
 }
 
