@@ -32,6 +32,7 @@ cargo run --release
  * Tanks
  * Hangman
  * Invaders
+ * Blob
 
 ## License
 
