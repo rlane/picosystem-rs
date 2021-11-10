@@ -277,13 +277,18 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                             intrusion.y = blob.p.y - (wall.bounding_box.max.y - blob.r);
                         }
 
-                        if intrusion.x > intrusion.y {
-                            blob.v.x = -blob.v.x;
-                        } else if intrusion.x < intrusion.y {
-                            blob.v.y = -blob.v.y;
-                        } else {
-                            blob.v.x = -blob.v.x;
-                            blob.v.y = -blob.v.y;
+                        use core::cmp::Ordering;
+                        match intrusion.x.cmp(&intrusion.y) {
+                            Ordering::Less => {
+                                blob.v.y = -blob.v.y;
+                            }
+                            Ordering::Equal => {
+                                blob.v.x = -blob.v.x;
+                                blob.v.y = -blob.v.y;
+                            }
+                            Ordering::Greater => {
+                                blob.v.x = -blob.v.x;
+                            }
                         }
 
                         break;

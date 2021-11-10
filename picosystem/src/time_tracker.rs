@@ -24,7 +24,7 @@ impl TimeTracker {
         self.update(time::time_us() - start);
     }
 
-    pub fn start<'a>(&'a mut self) -> Tracked<'a> {
+    pub fn start(&mut self) -> Tracked {
         Tracked {
             tracker: self,
             start: time::time_us(),
