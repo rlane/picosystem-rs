@@ -306,14 +306,18 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                     player.r = mass2radius(player.mass).min(world_size.x - 20);
                     hw.audio.start_tone(440 * 3);
                 } else {
-                    let m = FRAC * level as i32 / 16;
-                    let mut rnd = || rng.rand_range(0..(m as u32 * 2)) as i32 - m;
-                    blob.v += I32x2 { x: rnd(), y: rnd() };
-                    let dampen = |v| v * (128 - level as i32) / 128;
-                    blob.v = I32x2 {
-                        x: dampen(blob.v.x),
-                        y: dampen(blob.v.y),
-                    };
+                    if rng.rand_range(0..60) == 0 {
+                        let m = 10 * FRAC * level as i32 / 16;
+                        let mut rnd = || rng.rand_range(0..(m as u32 * 2)) as i32 - m;
+                        blob.v += I32x2 { x: rnd(), y: rnd() };
+                    }
+                    if blob.v.x * blob.v.x + blob.v.y * blob.v.y > FRAC * FRAC {
+                        let dampen = |v| v * 63 / 64;
+                        blob.v = I32x2 {
+                            x: dampen(blob.v.x),
+                            y: dampen(blob.v.y),
+                        };
+                    }
                     do_physics(blob, &walls);
                 }
             }
