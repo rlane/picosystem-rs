@@ -146,12 +146,13 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut level = 0;
 
     loop {
+        let walls = make_level(level % LEVELS.len());
         level += 1;
 
-        let mut player = Blob {
+        let mut make_player = || Blob {
             p: I32x2 {
-                x: world_size.x / 2,
-                y: world_size.y / 2,
+                x: rng.rand_range(0..world_size.x as u32) as i32,
+                y: rng.rand_range(0..world_size.y as u32) as i32,
             },
             v: I32x2 { x: 0, y: 0 },
             r: mass2radius(starting_mass),
@@ -159,24 +160,18 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             dead: false,
         };
 
-        let mut wall_rng = oorandom::Rand32::new(level as u64);
-        const NUM_WALLS: usize = 4;
-        let mut walls: Vec<Wall, NUM_WALLS> = Vec::new();
-        let block_size = world_size.x as u32 / 8;
-        let num_blocks = (world_size.x as u32 / block_size) as u32;
-        while walls.len() < NUM_WALLS {
-            let mut rnd = |range| (wall_rng.rand_range(range) * block_size) as i32;
-            let x = rnd(0..num_blocks);
-            let y = rnd(0..num_blocks);
-            let w = rnd(1..3);
-            let h = rnd(1..3);
-            let wall = Wall {
-                bounding_box: BoundingBox::new(I32x2 { x, y }, I32x2 { x: w, y: h }),
-            };
-            if player.intersects_wall(&wall) {
-                continue;
+        let intersects_walls = |blob: &Blob| -> bool {
+            for wall in walls.iter() {
+                if blob.intersects_wall(wall) {
+                    return true;
+                }
             }
-            let _ = walls.push(wall);
+            false
+        };
+
+        let mut player = make_player();
+        while intersects_walls(&player) {
+            player = make_player();
         }
 
         let mut make_enemy = || {
@@ -195,15 +190,6 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 mass,
                 dead: false,
             }
-        };
-
-        let intersects_walls = |enemy: &Blob| -> bool {
-            for wall in walls.iter() {
-                if enemy.intersects_wall(wall) {
-                    return true;
-                }
-            }
-            false
         };
 
         let mut blobs: Vec<Blob, 128> = Vec::new();
@@ -438,4 +424,69 @@ fn animate_win(hw: &mut hardware::Hardware, next_level: usize) {
     hw.display.draw(|display| {
         display.clear(Rgb565::CSS_DARK_SLATE_BLUE).unwrap();
     });
+}
+
+static LEVELS: [&str; 3] = [
+    "
+     xxxx....
+     x.......
+     x.......
+     xxx.....
+     xxx.....
+     x.......
+     x.......
+     xxxx....",
+    "
+     ........
+     ........
+     ..x..x..
+     ..x..x..
+     ..x..x..
+     ..x..x..
+     ..x..x..
+     ...xx...",
+    "
+     ...xx...
+     ...xx...
+     ........
+     ........
+     ...xx...
+     ...xx...
+     ...xx...
+     ...xx...",
+];
+
+fn make_level(level: usize) -> Vec<Wall, 64> {
+    let mut walls = Vec::new();
+    let mut i = 0;
+    const WALL_SIZE: i32 = WIDTH as i32 * FRAC / 8;
+    for c in LEVELS[level].chars() {
+        if c == ' ' || c == '\n' {
+            continue;
+        }
+        let x = i % 8;
+        let y = i / 8;
+        i += 1;
+        match c {
+            'x' => {
+                walls
+                    .push(Wall {
+                        bounding_box: BoundingBox::new(
+                            I32x2 {
+                                x: x as i32 * WALL_SIZE,
+                                y: y as i32 * WALL_SIZE,
+                            },
+                            I32x2 {
+                                x: WALL_SIZE,
+                                y: WALL_SIZE,
+                            },
+                        ),
+                    })
+                    .unwrap();
+            }
+            '.' => {}
+            _ => panic!("invalid level"),
+        }
+    }
+    walls
 }
