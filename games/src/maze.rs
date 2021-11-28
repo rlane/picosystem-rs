@@ -89,7 +89,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     loop {
         let mut cursor = Point::new(0, 0);
         let target = Point::new(MAZE_SIZE - 1, MAZE_SIZE - 1);
-        let mut maze = generate_maze(cursor, &mut hw.display);
+        let mut maze = generate_maze(&mut hw.display);
         maze.set_visited(cursor, true);
 
         draw_maze(&mut hw.display, &maze, cursor, target);
@@ -238,12 +238,17 @@ impl Maze {
     }
 }
 
-fn generate_maze(start: Point, display: &mut display::Display) -> Maze {
+fn generate_maze(display: &mut display::Display) -> Maze {
     let mut maze = Maze::new();
     const STACK_SIZE: usize = (MAZE_SIZE * MAZE_SIZE) as usize;
     let mut stack = heapless::Vec::<Point, STACK_SIZE>::new();
-    stack.push(start).unwrap();
     let mut rng = oorandom::Rand32::new(time::time_us() as u64);
+
+    let start = Point::new(
+        rng.rand_range(0..MAZE_SIZE as u32) as i32,
+        rng.rand_range(0..MAZE_SIZE as u32) as i32,
+    );
+    stack.push(start).unwrap();
 
     let mut pos = start;
     let mut i = 0;
