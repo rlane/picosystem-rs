@@ -8,6 +8,7 @@ mod invaders;
 mod life;
 mod maze;
 mod tanks;
+mod wordsearch;
 
 #[cfg(feature = "music")]
 mod music;
@@ -75,6 +76,10 @@ fn main() -> ! {
         MenuItem {
             name: "blob",
             main: blob::main,
+        },
+        MenuItem {
+            name: "wordsearch",
+            main: wordsearch::main,
         },
     ];
 
