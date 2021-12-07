@@ -7,6 +7,7 @@ mod hangman;
 mod invaders;
 mod life;
 mod maze;
+mod system;
 mod tanks;
 mod wordsearch;
 
@@ -97,6 +98,8 @@ fn main() -> ! {
             selected_index += 1;
         } else if hw.input.button_a.is_pressed() {
             break;
+        } else if hw.input.button_x.is_held() && hw.input.button_y.is_held() {
+            system::main(&mut hw);
         }
 
         hw.display.draw(|display| {
