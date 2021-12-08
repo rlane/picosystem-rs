@@ -3,11 +3,13 @@ use embedded_hal::digital::v2::InputPin;
 use rp2040_hal::gpio::dynpin::DynPin;
 
 const DEBOUNCE_US: u32 = 30_000;
+const REPEAT_US: u32 = 200_000;
 
 pub struct Button {
     pin: DynPin,
     press_inhibit: bool,
     last_held_time: u32,
+    last_repeat_time: u32,
 }
 
 impl Button {
@@ -17,6 +19,7 @@ impl Button {
             pin,
             press_inhibit: false,
             last_held_time: 0,
+            last_repeat_time: 0,
         }
     }
 
@@ -26,11 +29,18 @@ impl Button {
 
     pub fn is_pressed(&mut self) -> bool {
         if self.is_held() {
-            self.last_held_time = time::time_us();
+            let now = time::time_us();
+            self.last_held_time = now;
             if self.press_inhibit {
-                false
+                if now - self.last_repeat_time > REPEAT_US {
+                    self.last_repeat_time = now;
+                    true
+                } else {
+                    false
+                }
             } else {
                 self.press_inhibit = true;
+                self.last_repeat_time = now;
                 true
             }
         } else if self.press_inhibit && time::time_us() > self.last_held_time + DEBOUNCE_US {
