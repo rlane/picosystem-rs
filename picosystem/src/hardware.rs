@@ -1,10 +1,13 @@
 use crate::display::Display;
 use crate::{audio, dma, input, usb_logger};
+use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
 use pico::hal;
 use pico::hal::pac;
 use rp2040_hal::gpio::dynpin::DynPin;
+use rp2040_hal::gpio::pin::bank0::Gpio26;
+use rp2040_hal::gpio::pin::{FloatingInput, Pin};
 use rp2040_hal::gpio::Pins;
 
 use rp2040_hal::{
@@ -19,7 +22,9 @@ pub struct Hardware {
     pub red_led_pin: DynPin,
     pub green_led_pin: DynPin,
     pub blue_led_pin: DynPin,
+    pub battery_pin: Pin<Gpio26, FloatingInput>,
     pub delay: cortex_m::delay::Delay,
+    pub adc: hal::adc::Adc,
     pub input: input::Input,
     pub audio: audio::Audio,
 }
@@ -84,6 +89,9 @@ impl Hardware {
         green_led_pin.set_low().unwrap();
         blue_led_pin.set_low().unwrap();
 
+        let battery_pin = pins.gpio26.into_floating_input();
+        let adc = hal::adc::Adc::new(pac.ADC, &mut pac.RESETS);
+
         let display = Display::new(
             /*backlight_pin=*/ pins.gpio12.into(),
             /*lcd_dc_pin=*/ pins.gpio9.into(),
@@ -119,6 +127,8 @@ impl Hardware {
             red_led_pin: red_led_pin.into(),
             green_led_pin: green_led_pin.into(),
             blue_led_pin: blue_led_pin.into(),
+            battery_pin,
+            adc,
             delay,
             input,
             audio,
@@ -171,5 +181,25 @@ impl Hardware {
             .init_default(&xosc, &pll_sys, &pll_usb)
             .map_err(InitError::ClockError)?;
         Ok(clocks)
+    }
+
+    pub fn read_battery_raw(&mut self) -> u16 {
+        self.adc.read(&mut self.battery_pin).unwrap()
+    }
+
+    pub fn read_battery_raw_slow(&mut self) -> u16 {
+        let mut sum: u32 = 0;
+        let n = 100;
+        for _ in 0..n {
+            sum += self.read_battery_raw() as u32;
+        }
+        (sum / n) as u16
+    }
+
+    pub fn read_battery_fraction(&mut self) -> f32 {
+        let high = 1680.0;
+        let low = 1390.0;
+        let raw = self.read_battery_raw() as f32;
+        ((raw - low) / (high - low)).clamp(0.0, 1.0)
     }
 }
