@@ -7,6 +7,7 @@ mod hangman;
 mod invaders;
 mod life;
 mod maze;
+mod memory;
 mod system;
 mod tanks;
 mod wordsearch;
@@ -77,6 +78,10 @@ fn main() -> ! {
         MenuItem {
             name: "wordsearch",
             main: wordsearch::main,
+        },
+        MenuItem {
+            name: "memory",
+            main: memory::main,
         },
     ];
 
