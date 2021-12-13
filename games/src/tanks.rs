@@ -78,12 +78,14 @@ fn run_game(hw: &mut hardware::Hardware) {
             }
         }
 
-        hw.display.clear(Rgb565::CYAN).unwrap();
-        draw_terrain(&mut hw.display, &terrain);
-        for tank in tanks.iter() {
-            draw_tank(&mut hw.display, tank, tank.index == tank_index);
-        }
-        hw.display.flush();
+        hw.draw(|display| {
+            display.clear(Rgb565::CYAN).unwrap();
+            draw_terrain(display, &terrain);
+            for tank in tanks.iter() {
+                draw_tank(display, tank, tank.index == tank_index);
+            }
+            display.flush();
+        });
     }
 }
 
@@ -182,17 +184,18 @@ fn draw_explosion(hw: &mut hardware::Hardware, p: Point, r: i32) {
     let p = Point::new(p.x, HEIGHT as i32 - p.y);
     let tmax: i32 = r * 2;
     for t in 0..tmax {
-        let style = PrimitiveStyleBuilder::new()
-            .stroke_color(Rgb565::BLACK)
-            .stroke_width(1)
-            .fill_color(Rgb565::RED)
-            .build();
-        let r = tmax / 2 - (t - tmax / 2).abs();
-        Circle::with_center(p, r as u32 * 2)
-            .into_styled(style)
-            .draw(&mut hw.display)
-            .unwrap();
-        hw.display.flush();
+        hw.draw(|display| {
+            let style = PrimitiveStyleBuilder::new()
+                .stroke_color(Rgb565::BLACK)
+                .stroke_width(1)
+                .fill_color(Rgb565::RED)
+                .build();
+            let r = tmax / 2 - (t - tmax / 2).abs();
+            Circle::with_center(p, r as u32 * 2)
+                .into_styled(style)
+                .draw(display)
+                .unwrap();
+        });
     }
 }
 
@@ -224,11 +227,12 @@ fn fire_shot(
         let style = PrimitiveStyleBuilder::new()
             .fill_color(Rgb565::new(100, 80, 100))
             .build();
-        Circle::with_center(Point::new(p.x as i32, HEIGHT as i32 - p.y as i32), 3)
-            .into_styled(style)
-            .draw(&mut hw.display)
-            .unwrap();
-        hw.display.flush();
+        hw.draw(|display| {
+            Circle::with_center(Point::new(p.x as i32, HEIGHT as i32 - p.y as i32), 3)
+                .into_styled(style)
+                .draw(display)
+                .unwrap();
+        });
         if p.x < 0.0 || p.x >= WIDTH as f32 {
             break;
         }

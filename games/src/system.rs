@@ -32,7 +32,7 @@ pub fn main(hw: &mut hardware::Hardware) {
             hw.delay.delay_ms(300);
         }
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::BLACK).unwrap();
 
             for (i, item) in items.iter().enumerate() {
@@ -79,7 +79,7 @@ fn battery_test(hw: &mut hardware::Hardware) {
                 .unwrap();
         }
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::BLACK).unwrap();
 
             let text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);

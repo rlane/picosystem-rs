@@ -183,6 +183,10 @@ impl Hardware {
         Ok(clocks)
     }
 
+    pub fn draw(&mut self, func: impl FnOnce(&mut Display)) {
+        self.display.draw(func);
+    }
+
     pub fn read_battery_raw(&mut self) -> u16 {
         self.adc.read(&mut self.battery_pin).unwrap()
     }

@@ -44,7 +44,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             }
         }
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::BLUE).unwrap();
             for y in 0..BOARD_SIZE {
                 for x in 0..BOARD_SIZE {

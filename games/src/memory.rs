@@ -191,7 +191,7 @@ fn draw(
     revealed: Option<GridPoint>,
     matched: bool,
 ) {
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         display.clear(Rgb565::BLACK).unwrap();
 
         let text_style = TextStyleBuilder::new()
@@ -255,7 +255,7 @@ fn draw(
 }
 
 fn animate_win(hw: &mut hardware::Hardware) {
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         Rectangle::new(Point::new(40, 100), Size::new(160, 40))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_GREEN))
             .draw(display)

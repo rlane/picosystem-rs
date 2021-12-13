@@ -24,10 +24,12 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut color_index = 0;
     let mut cursor_size = 1;
     let mut color = colors[color_index];
+    let mut prev_cursor: Option<Styled<_, _>> = None;
 
     let mut frame = 0;
     let mut prev_time_us = time::time_us();
     let mut prev_frame = 0;
+
     loop {
         if hw.input.dpad_left.is_held() && cursorx > 0 {
             cursorx -= 1;
@@ -63,11 +65,28 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             .into_styled(PrimitiveStyleBuilder::new().fill_color(color).build())
         };
 
-        if hw.input.button_a.is_held() {
-            make_cursor(color).draw(&mut hw.display).unwrap();
-        }
+        let drawing = hw.input.button_a.is_held();
 
-        {
+        hw.draw(|display| {
+            if let Some(c) = prev_cursor {
+                c.draw(&mut display::XorDisplay::new(display)).unwrap();
+            }
+
+            if drawing {
+                make_cursor(color).draw(display).unwrap();
+            }
+
+            {
+                let cursor_color = if frame % 32 < 16 {
+                    color
+                } else {
+                    Rgb565::WHITE
+                };
+                let cursor = make_cursor(cursor_color);
+                cursor.draw(&mut display::XorDisplay::new(display)).unwrap();
+                prev_cursor = Some(cursor);
+            }
+
             // Selected color
             Rectangle::new(Point::new(0, 0), Size::new(20, 20))
                 .into_styled(
@@ -77,25 +96,9 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                         .stroke_width(2)
                         .build(),
                 )
-                .draw(&mut hw.display)
+                .draw(display)
                 .unwrap();
-        }
-
-        {
-            let cursor_color = if frame % 32 < 16 {
-                color
-            } else {
-                Rgb565::WHITE
-            };
-            let cursor = make_cursor(cursor_color);
-            cursor
-                .draw(&mut display::XorDisplay::new(&mut hw.display))
-                .unwrap();
-            hw.display.flush();
-            cursor
-                .draw(&mut display::XorDisplay::new(&mut hw.display))
-                .unwrap();
-        }
+        });
 
         let now = time::time_us();
         if now - prev_time_us > 1_000_000 {

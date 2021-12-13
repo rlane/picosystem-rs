@@ -103,7 +103,7 @@ fn main() -> ! {
             system::main(&mut hw);
         }
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::BLACK).unwrap();
             stars.draw(display);
 
@@ -131,7 +131,7 @@ fn main() -> ! {
         fps_monitor.update();
     }
 
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         display.clear(Rgb565::BLACK).unwrap();
     });
 

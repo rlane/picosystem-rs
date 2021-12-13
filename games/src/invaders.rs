@@ -144,7 +144,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
         enemies = enemies.iter().filter(|e| !e.dead).cloned().collect();
         particles.update();
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(background_color).unwrap();
 
             for l in lasers.iter() {
