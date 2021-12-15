@@ -237,7 +237,7 @@ fn draw(
     found_count: i32,
     target_count: i32,
 ) {
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         display.clear(Rgb565::BLACK).unwrap();
 
         let normal_text_style = MonoTextStyle::new(&FONT_10X20, Rgb565::CSS_LIGHT_SLATE_GRAY);
@@ -290,7 +290,7 @@ fn draw(
 }
 
 fn animate_win(hw: &mut hardware::Hardware) {
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         Rectangle::new(Point::new(40, 100), Size::new(160, 40))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_GREEN))
             .draw(display)

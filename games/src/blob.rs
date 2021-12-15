@@ -333,7 +333,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 break;
             }
 
-            hw.display.draw(|display| {
+            hw.draw(|display| {
                 display.clear(Rgb565::CSS_DARK_SLATE_BLUE).unwrap();
 
                 Circle::with_center(world2screen(player.p), 2 * (player.r / FRAC) as u32)
@@ -416,7 +416,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
 }
 
 fn animate_win(hw: &mut hardware::Hardware, next_level: usize) {
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         Rectangle::new(Point::new(40, 100), Size::new(160, 40))
             .into_styled(PrimitiveStyle::with_fill(Rgb565::CSS_GREEN))
             .draw(display)
@@ -441,7 +441,7 @@ fn animate_win(hw: &mut hardware::Hardware, next_level: usize) {
 
     hw.delay.delay_ms(2000);
 
-    hw.display.draw(|display| {
+    hw.draw(|display| {
         display.clear(Rgb565::CSS_DARK_SLATE_BLUE).unwrap();
     });
 }

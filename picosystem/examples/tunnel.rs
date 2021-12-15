@@ -39,7 +39,7 @@ fn main() -> ! {
             countdown -= 1;
         }
 
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::CSS_DARK_SLATE_BLUE).unwrap();
             for &size in sizes.iter() {
                 let size = size as u32 | 1;

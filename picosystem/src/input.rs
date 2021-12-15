@@ -2,14 +2,14 @@ use crate::time;
 use embedded_hal::digital::v2::InputPin;
 use rp2040_hal::gpio::dynpin::DynPin;
 
-const DEBOUNCE_US: u32 = 30_000;
-const REPEAT_US: u32 = 200_000;
+const DEBOUNCE_US: u64 = 30_000;
+const REPEAT_US: u64 = 200_000;
 
 pub struct Button {
     pin: DynPin,
     press_inhibit: bool,
-    last_held_time: u32,
-    last_repeat_time: u32,
+    last_held_time: u64,
+    last_repeat_time: u64,
 }
 
 impl Button {
@@ -29,7 +29,7 @@ impl Button {
 
     pub fn is_pressed(&mut self) -> bool {
         if self.is_held() {
-            let now = time::time_us();
+            let now = time::time_us64();
             self.last_held_time = now;
             if self.press_inhibit {
                 if now - self.last_repeat_time > REPEAT_US {
@@ -43,7 +43,7 @@ impl Button {
                 self.last_repeat_time = now;
                 true
             }
-        } else if self.press_inhibit && time::time_us() > self.last_held_time + DEBOUNCE_US {
+        } else if self.press_inhibit && time::time_us64() > self.last_held_time + DEBOUNCE_US {
             self.press_inhibit = false;
             false
         } else {
@@ -85,5 +85,23 @@ impl Input {
             button_a: Button::new(button_a_pin),
             button_b: Button::new(button_b_pin),
         }
+    }
+
+    pub fn is_active(&self) -> bool {
+        for button in [
+            &self.dpad_left,
+            &self.dpad_right,
+            &self.dpad_down,
+            &self.dpad_up,
+            &self.button_x,
+            &self.button_y,
+            &self.button_a,
+            &self.button_b,
+        ] {
+            if button.is_held() {
+                return true;
+            }
+        }
+        false
     }
 }

@@ -1,4 +1,5 @@
 use display::WIDTH;
+use hardware::Hardware;
 use log::info;
 use picosystem::{display, hardware, time};
 
@@ -89,11 +90,12 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     loop {
         let mut cursor = Point::new(0, 0);
         let target = Point::new(MAZE_SIZE - 1, MAZE_SIZE - 1);
-        let mut maze = generate_maze(&mut hw.display);
+        let mut maze = generate_maze(hw);
         maze.set_visited(cursor, true);
 
-        draw_maze(&mut hw.display, &maze, cursor, target);
-        hw.display.flush();
+        hw.draw(|display| {
+            draw_maze(display, &maze, cursor, target);
+        });
 
         let mut frame = 0;
         let mut prev_time_us = time::time_us();
@@ -110,22 +112,23 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 dir = Some(S);
             }
             if let Some(d) = dir {
-                let next_cursor = cursor + delta(d);
-                if valid(next_cursor) && maze.get(cursor).has_tunnel(d) {
-                    if maze.get_visited(next_cursor) {
-                        draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::BLACK);
-                        draw_link(&mut hw.display, cursor, d, Rgb565::BLACK);
-                        maze.set_visited(cursor, false);
-                    } else {
-                        let path_color = Rgb565::new(200, 0, 0);
-                        draw_cell(&mut hw.display, cursor, maze.get(cursor), path_color);
-                        draw_link(&mut hw.display, cursor, d, path_color);
+                hw.draw(|display| {
+                    let next_cursor = cursor + delta(d);
+                    if valid(next_cursor) && maze.get(cursor).has_tunnel(d) {
+                        if maze.get_visited(next_cursor) {
+                            draw_cell(display, cursor, maze.get(cursor), Rgb565::BLACK);
+                            draw_link(display, cursor, d, Rgb565::BLACK);
+                            maze.set_visited(cursor, false);
+                        } else {
+                            let path_color = Rgb565::new(200, 0, 0);
+                            draw_cell(display, cursor, maze.get(cursor), path_color);
+                            draw_link(display, cursor, d, path_color);
+                        }
+                        cursor = next_cursor;
+                        draw_cell(display, cursor, maze.get(cursor), Rgb565::RED);
+                        maze.set_visited(cursor, true);
                     }
-                    cursor = next_cursor;
-                    draw_cell(&mut hw.display, cursor, maze.get(cursor), Rgb565::RED);
-                    maze.set_visited(cursor, true);
-                    hw.display.flush();
-                }
+                });
             }
 
             if cursor == target {
@@ -238,7 +241,7 @@ impl Maze {
     }
 }
 
-fn generate_maze(display: &mut display::Display) -> Maze {
+fn generate_maze(hw: &mut Hardware) -> Maze {
     let mut maze = Maze::new();
     const STACK_SIZE: usize = (MAZE_SIZE * MAZE_SIZE) as usize;
     let mut stack = heapless::Vec::<Point, STACK_SIZE>::new();
@@ -251,35 +254,36 @@ fn generate_maze(display: &mut display::Display) -> Maze {
     stack.push(start).unwrap();
 
     let mut pos = start;
-    let mut i = 0;
     while !stack.is_empty() {
-        maze.set_visited(pos, true);
+        hw.draw(|display| {
+            let mut i = 0;
+            while !stack.is_empty() && i < 8 {
+                i += 1;
+                maze.set_visited(pos, true);
 
-        let mut options = heapless::Vec::<(u8, Point), 4>::new();
-        for dir in directions() {
-            let neighbor = pos + delta(dir);
-            if valid(neighbor) && !maze.get(neighbor).visited() {
-                options.push((dir, neighbor)).unwrap();
+                let mut options = heapless::Vec::<(u8, Point), 4>::new();
+                for dir in directions() {
+                    let neighbor = pos + delta(dir);
+                    if valid(neighbor) && !maze.get(neighbor).visited() {
+                        options.push((dir, neighbor)).unwrap();
+                    }
+                }
+
+                if options.is_empty() {
+                    draw_cell(display, pos, maze.get(pos), Rgb565::new(50, 50, 50));
+                    pos = stack.pop().unwrap();
+                } else {
+                    draw_cell(display, pos, maze.get(pos), Rgb565::new(100, 100, 100));
+                    stack.push(pos).unwrap();
+                    let n = options.len() as u32;
+                    let (dir, new_pos) = options[rng.rand_range(0..n) as usize];
+                    maze.get_mut(pos).set_tunnel(dir);
+                    maze.get_mut(new_pos).set_tunnel(opposite(dir));
+                    pos = new_pos;
+                    draw_cell(display, pos, maze.get(pos), Rgb565::WHITE);
+                }
             }
-        }
-
-        if options.is_empty() {
-            draw_cell(display, pos, maze.get(pos), Rgb565::new(50, 50, 50));
-            pos = stack.pop().unwrap();
-        } else {
-            draw_cell(display, pos, maze.get(pos), Rgb565::new(100, 100, 100));
-            stack.push(pos).unwrap();
-            let n = options.len() as u32;
-            let (dir, new_pos) = options[rng.rand_range(0..n) as usize];
-            maze.get_mut(pos).set_tunnel(dir);
-            maze.get_mut(new_pos).set_tunnel(opposite(dir));
-            pos = new_pos;
-            draw_cell(display, pos, maze.get(pos), Rgb565::WHITE);
-        }
-        if i % 8 == 0 {
-            display.flush();
-        }
-        i += 1;
+        });
     }
 
     maze.clear_visited();

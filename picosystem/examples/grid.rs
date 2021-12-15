@@ -17,7 +17,7 @@ fn main() -> ! {
     let mut x: i32 = 0;
     let mut y: i32 = 0;
     loop {
-        hw.display.draw(|display| {
+        hw.draw(|display| {
             display.clear(Rgb565::CSS_DARK_RED).unwrap();
             for i in 0..240 {
                 if i % 16 == 0 {

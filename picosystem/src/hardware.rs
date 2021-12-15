@@ -1,5 +1,5 @@
 use crate::display::Display;
-use crate::{audio, dma, input, usb_logger};
+use crate::{audio, dma, idle, input, usb_logger};
 use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
@@ -27,6 +27,7 @@ pub struct Hardware {
     pub adc: hal::adc::Adc,
     pub input: input::Input,
     pub audio: audio::Audio,
+    pub idle: idle::Idle,
 }
 
 impl Hardware {
@@ -132,6 +133,7 @@ impl Hardware {
             delay,
             input,
             audio,
+            idle: idle::Idle::new(),
         }
     }
 
@@ -181,6 +183,13 @@ impl Hardware {
             .init_default(&xosc, &pll_sys, &pll_usb)
             .map_err(InitError::ClockError)?;
         Ok(clocks)
+    }
+
+    pub fn draw(&mut self, func: impl FnOnce(&mut Display)) {
+        if self.idle.check_idle(&mut self.input) {
+            self.idle.enter_idle(&mut self.display);
+        }
+        self.display.draw(func);
     }
 
     pub fn read_battery_raw(&mut self) -> u16 {
