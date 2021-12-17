@@ -4,6 +4,7 @@ use rp2040_pac::dma::CH;
 use rp2040_pac::generic::W;
 
 pub struct DmaChannel {
+    pub channel: usize,
     pub ch: &'static CH,
 }
 
@@ -11,6 +12,7 @@ pub struct DmaChannel {
 impl DmaChannel {
     pub unsafe fn new(channel: usize) -> Self {
         DmaChannel {
+            channel,
             ch: &(*rp2040_pac::DMA::PTR).ch[channel],
         }
     }
@@ -63,11 +65,13 @@ pub(crate) unsafe fn set_mem(
     elem_size: u32,
     count: u32,
 ) {
+    let channel = dma_channel.channel;
     dma_channel.set_src(src);
     dma_channel.set_dst(dst);
     dma_channel.set_count(count);
     dma_channel.set_ctrl_and_trigger(|w| {
         w.treq_sel().permanent();
+        w.chain_to().bits(channel as u8);
         w.incr_write().set_bit();
         w.data_size().bits(wordsize(elem_size) as u8);
         w.en().set_bit();
@@ -83,11 +87,13 @@ pub(crate) unsafe fn start_copy_to_spi(
     elem_size: u32,
     count: u32,
 ) {
+    let channel = dma_channel.channel;
     dma_channel.set_src(src);
     dma_channel.set_dst(dst);
     dma_channel.set_count(count);
     dma_channel.set_ctrl_and_trigger(|w| {
         w.treq_sel().bits(16); // SPI0 TX
+        w.chain_to().bits(channel as u8);
         w.incr_read().set_bit();
         w.data_size().bits(wordsize(elem_size) as u8);
         w.en().set_bit();
