@@ -80,6 +80,30 @@ pub(crate) unsafe fn set_mem(
     dma_channel.wait();
 }
 
+pub unsafe fn copy_mem_bswap(
+    dma_channel: &mut DmaChannel,
+    src: u32,
+    dst: u32,
+    elem_size: u32,
+    count: u32,
+) {
+    let channel = dma_channel.channel;
+    dma_channel.set_src(src);
+    dma_channel.set_dst(dst);
+    dma_channel.set_count(count);
+    dma_channel.set_ctrl_and_trigger(|w| {
+        w.bswap().set_bit();
+        w.treq_sel().permanent();
+        w.chain_to().bits(channel as u8);
+        w.incr_write().set_bit();
+        w.incr_read().set_bit();
+        w.data_size().bits(wordsize(elem_size) as u8);
+        w.en().set_bit();
+        w
+    });
+    dma_channel.wait();
+}
+
 pub(crate) unsafe fn start_copy_to_spi(
     dma_channel: &mut DmaChannel,
     src: u32,
