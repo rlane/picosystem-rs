@@ -25,7 +25,7 @@ pub const HEIGHT: usize = 240;
 
 static mut FRAMEBUFFER: [u16; WIDTH * HEIGHT] = [0; WIDTH * HEIGHT];
 
-fn framebuffer() -> &'static mut [u16; WIDTH * HEIGHT] {
+pub fn framebuffer() -> &'static mut [u16; WIDTH * HEIGHT] {
     unsafe { &mut FRAMEBUFFER }
 }
 
