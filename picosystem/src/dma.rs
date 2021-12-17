@@ -44,6 +44,10 @@ impl DmaChannel {
         self.ch.ch_read_addr.read().bits()
     }
 
+    pub fn get_dst(&self) -> u32 {
+        self.ch.ch_write_addr.read().bits()
+    }
+
     pub fn get_count(&self) -> u32 {
         self.ch.ch_trans_count.read().bits()
     }
