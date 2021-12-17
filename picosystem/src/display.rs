@@ -5,6 +5,7 @@ use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::{
     pixelcolor::{raw::RawU16, Rgb565},
     prelude::*,
+    primitives::Rectangle,
 };
 use embedded_hal::blocking::delay::DelayUs;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
@@ -153,6 +154,48 @@ impl DrawTarget for Display {
                 let index: u32 = x + y * WIDTH as u32;
                 let color = RawU16::from(color).into_inner();
                 fb[index as usize] = color.to_be();
+            }
+        }
+
+        Ok(())
+    }
+
+    fn fill_contiguous<I>(&mut self, area: &Rectangle, colors: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Self::Color>,
+    {
+        let clipped_area = area.intersection(&self.bounding_box());
+        if area.bottom_right().is_none() || clipped_area.bottom_right().is_none() {
+            return Ok(());
+        }
+
+        let skip_top_left = clipped_area.top_left - area.top_left;
+        let skip_bottom_right = area.bottom_right().unwrap() - clipped_area.bottom_right().unwrap();
+
+        let fb = framebuffer();
+        let mut colors = colors.into_iter();
+
+        for _ in 0..skip_top_left.y {
+            for _ in 0..area.size.width {
+                colors.next();
+            }
+        }
+
+        for y in 0..clipped_area.size.height as i32 {
+            for _ in 0..skip_top_left.x {
+                colors.next();
+            }
+
+            let mut index = clipped_area.top_left.x + (clipped_area.top_left.y + y) * WIDTH as i32;
+            for _ in 0..clipped_area.size.width {
+                let color = colors.next().unwrap();
+                let color = RawU16::from(color).into_inner();
+                fb[index as usize] = color.to_be();
+                index += 1;
+            }
+
+            for _ in 0..skip_bottom_right.x {
+                colors.next();
             }
         }
 
