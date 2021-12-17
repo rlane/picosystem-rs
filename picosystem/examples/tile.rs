@@ -49,6 +49,32 @@ fn main() -> ! {
     let mut fps_monitor = FpsMonitor::new();
 
     let atlas_sprite = sprite_atlas();
+    let grass0_tile = Point::new(0, 800);
+    let grass1_tile = Point::new(32, 800);
+    let grass2_tile = Point::new(64, 800);
+    let grass3_tile = Point::new(128, 736);
+    let grass4_tile = Point::new(672, 160);
+    let grass5_tile = Point::new(704, 160);
+    let grass6_tile = Point::new(736, 160);
+
+    let grass_tiles = [
+        grass0_tile,
+        grass1_tile,
+        grass2_tile,
+        grass3_tile,
+        grass4_tile,
+        grass5_tile,
+        grass6_tile,
+    ];
+
+    let mut rng = oorandom::Rand32::new(42);
+    let mut map: [Point; 16 * 16] = [grass0_tile; 16 * 16];
+    for x in 0..16 {
+        for y in 0..16 {
+            let r = rng.rand_range(0..(grass_tiles.len() as u32));
+            map[x + y * 16] = grass_tiles[r as usize];
+        }
+    }
 
     let mut total_draw_time = 0;
     let mut frame = 0;
@@ -63,10 +89,11 @@ fn main() -> ! {
             }
             let row_start_time = time::time_us();
             for x in (0..WIDTH as i32).step_by(32) {
+                let tile = map[((x / 32) + (drawn_y / 32) * 16) as usize];
                 draw_tile(
                     &mut hw.display,
                     &atlas_sprite,
-                    Point::new(32, 800),
+                    tile,
                     Point::new(x, drawn_y),
                     Size::new(32, 32),
                 );
