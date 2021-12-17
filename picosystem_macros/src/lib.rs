@@ -36,7 +36,7 @@ pub fn sprite(input: TokenStream) -> TokenStream {
         .expect(&format!("Could not load image {:?}", &path))
         .decode()
         .expect(&format!("Could not decode image {:?}", &path))
-        .resize(width, 240, image::imageops::FilterType::Triangle)
+        .resize(width, 16384, image::imageops::FilterType::Triangle)
         .into_rgba8();
     let transparent_color = 0;
     let mut found_transparent_color = false;
