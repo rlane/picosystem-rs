@@ -39,6 +39,7 @@ pub fn sprite(input: TokenStream) -> TokenStream {
         .resize(width, 240, image::imageops::FilterType::Triangle)
         .into_rgba8();
     let transparent_color = 0;
+    let mut found_transparent_color = false;
     let data: Vec<u16> = img
         .pixels()
         .map(|p| {
@@ -47,6 +48,7 @@ pub fn sprite(input: TokenStream) -> TokenStream {
             let b = p[2] as u16;
             let a = p[3] as u16;
             if a != 255 {
+                found_transparent_color = true;
                 transparent_color
             } else {
                 ((r >> 3) << 11) | ((g >> 2) << 5) | ((b >> 3) << 0)
@@ -61,7 +63,7 @@ pub fn sprite(input: TokenStream) -> TokenStream {
             static DATA: [u16; {}] = {:?};
             static SPRITE: picosystem::sprite::Sprite<'static> = picosystem::sprite::Sprite {{
                 size: embedded_graphics::geometry::Size::new({}, {}),
-                transparent_color: {},
+                transparent_color: {:?},
                 data: &DATA
             }};
             &SPRITE
@@ -71,7 +73,11 @@ pub fn sprite(input: TokenStream) -> TokenStream {
         &data,
         img.width(),
         img.height(),
-        transparent_color,
+        if found_transparent_color {
+            Some(transparent_color)
+        } else {
+            None
+        }
     ));
     code.parse().unwrap()
 }
