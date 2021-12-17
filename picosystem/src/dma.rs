@@ -37,6 +37,14 @@ impl DmaChannel {
     pub fn wait(&self) {
         while self.ch.ch_trans_count.read().bits() > 0 {}
     }
+
+    pub fn get_src(&self) -> u32 {
+        self.ch.ch_read_addr.read().bits()
+    }
+
+    pub fn get_count(&self) -> u32 {
+        self.ch.ch_trans_count.read().bits()
+    }
 }
 
 fn wordsize(elem_size: u32) -> u32 {

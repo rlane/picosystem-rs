@@ -137,6 +137,13 @@ impl Display {
         while self.lcd_vsync_pin.is_high().unwrap() {}
         while self.lcd_vsync_pin.is_low().unwrap() {}
     }
+
+    pub fn flush_progress(&self) -> usize {
+        if self.dma_channel.get_count() == 0 {
+            return WIDTH * HEIGHT;
+        }
+        (self.dma_channel.get_src() as usize - framebuffer().as_ptr() as usize) / 2
+    }
 }
 
 impl DrawTarget for Display {
