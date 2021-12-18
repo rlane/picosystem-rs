@@ -63,6 +63,11 @@ fn main() -> ! {
     info!("Finished initialization");
     let mut fps_monitor = FpsMonitor::new();
 
+    unsafe {
+        let regs = &*pico::pac::XIP_SSI::PTR;
+        info!("Flash clock divider: {}", regs.baudr.read().bits());
+    }
+
     let atlas_sprite = sprite_atlas();
     let grass0_tile = Point::new(0, 800);
     let grass1_tile = Point::new(32, 800);
