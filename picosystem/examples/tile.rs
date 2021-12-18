@@ -67,20 +67,37 @@ fn main() -> ! {
         grass6_tile,
     ];
 
-    let mut rng = oorandom::Rand32::new(42);
-    let mut map: [Point; 16 * 16] = [grass0_tile; 16 * 16];
-    for x in 0..16 {
-        for y in 0..16 {
-            let r = rng.rand_range(0..(grass_tiles.len() as u32));
-            map[x + y * 16] = grass_tiles[r as usize];
-        }
-    }
+    let generate_map = |position: Point| -> Point {
+        use hash32::{Hash, Hasher};
+        let mut hasher = hash32::Murmur3Hasher::default();
+        position.x.hash(&mut hasher);
+        position.y.hash(&mut hasher);
+        grass_tiles[hasher.finish() as usize % grass_tiles.len()]
+    };
 
+    let mut position = Point::new(0, 0);
     let mut total_draw_time = 0;
     let mut frame = 0;
+    let subtile_mask = 32 - 1;
     loop {
+        let speed = 2;
+        if hw.input.dpad_left.is_held() {
+            position.x -= speed;
+        }
+        if hw.input.dpad_right.is_held() {
+            position.x += speed;
+        }
+        if hw.input.dpad_up.is_held() {
+            position.y -= speed;
+        }
+        if hw.input.dpad_down.is_held() {
+            position.y += speed;
+        }
+
         let mut drawn_y: i32 = 0;
+        let mut world_y = position.y;
         let mut flush_finished = false;
+        let subtile_y = position.y & subtile_mask;
         loop {
             let progress = hw.display.flush_progress();
             let safe_y = (progress as i32 - WIDTH as i32 + 1) / WIDTH as i32;
@@ -88,13 +105,21 @@ fn main() -> ! {
                 continue;
             }
             let row_start_time = time::time_us();
-            for x in (0..WIDTH as i32).step_by(32) {
-                let tile = map[((x / 32) + (drawn_y / 32) * 16) as usize];
+
+            let screen_y = drawn_y - subtile_y;
+
+            let subtile_x = position.x & subtile_mask;
+
+            for screen_x in (-subtile_x..(WIDTH as i32 - subtile_x)).step_by(32) {
+                let world_x = position.x + screen_x;
+
+                let tile =
+                    generate_map(Point::new(world_x & !subtile_mask, world_y & !subtile_mask));
                 draw_tile(
                     &mut hw.display,
                     &atlas_sprite,
                     tile,
-                    Point::new(x, drawn_y),
+                    Point::new(screen_x, screen_y),
                     Size::new(32, 32),
                 );
             }
@@ -112,6 +137,7 @@ fn main() -> ! {
             }
             //log::info!("drawn_y: {} progress: {}", drawn_y, progress);
             drawn_y += 32;
+            world_y += 32;
             if drawn_y >= HEIGHT as i32 {
                 break;
             }

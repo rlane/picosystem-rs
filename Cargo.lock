@@ -706,6 +706,7 @@ dependencies = [
  "embedded-graphics",
  "embedded-hal",
  "embedded-time",
+ "hash32",
  "heapless",
  "log",
  "oorandom",
