@@ -1,4 +1,5 @@
 use crate::dma::{self, DmaChannel};
+use crate::time;
 use core::convert::TryInto;
 use display_interface_spi::SPIInterfaceNoCS;
 use embedded_graphics::draw_target::DrawTarget;
@@ -37,6 +38,7 @@ pub struct Display {
     backlight_pin: DynPin,
     lcd_vsync_pin: DynPin,
     dma_channel: DmaChannel,
+    last_vsync_time: u32,
 }
 
 impl Display {
@@ -82,6 +84,7 @@ impl Display {
             backlight_pin,
             dma_channel,
             lcd_vsync_pin,
+            last_vsync_time: 0,
         };
         // A single clear occasionally fails to clear the screen.
         for _ in 0..2 {
@@ -134,8 +137,12 @@ impl Display {
     }
 
     pub fn wait_for_vsync(&mut self) {
+        if self.last_vsync_time != 0 && time::time_us() - self.last_vsync_time > 16_000 {
+            log::info!("Missed vsync");
+        }
         while self.lcd_vsync_pin.is_high().unwrap() {}
         while self.lcd_vsync_pin.is_low().unwrap() {}
+        self.last_vsync_time = time::time_us();
     }
 
     pub fn flush_progress(&self) -> usize {
