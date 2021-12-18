@@ -17,28 +17,43 @@ use picosystem_macros::sprite;
 sprite!(sprite_atlas, "picosystem/examples/terrain_atlas.png", 1032);
 
 fn draw_tile(display: &mut Display, atlas: &Sprite, src: Point, dst: Point, size: Size) {
-    if Rectangle::new(dst, size)
-        .intersection(&display.bounding_box())
-        .size
-        != size
-    {
-        return;
-    }
+    let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
+    if clipped_dst.size != size {
+        let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
+        let src_data = &atlas.data;
+        let dst_data = picosystem::display::framebuffer();
 
-    let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
-    let src_data = &atlas.data;
-    let dst_data = picosystem::display::framebuffer();
+        let src = src + clipped_dst.top_left - dst;
+        let dst = clipped_dst.top_left;
+        let size = clipped_dst.size;
 
-    let mut src_index = src.x + src.y * atlas.size.width as i32;
-    let mut dst_index = dst.x + dst.y * WIDTH as i32;
-    for _ in 0..size.height {
-        unsafe {
-            let src_addr = src_data.as_ptr().add(src_index as usize) as u32;
-            let dst_addr = dst_data.as_mut_ptr().add(dst_index as usize) as u32;
-            dma::copy_mem_bswap(&mut dma_channel, src_addr, dst_addr, 2, size.width);
+        let mut src_index = src.x + src.y * atlas.size.width as i32;
+        let mut dst_index = dst.x + dst.y * WIDTH as i32;
+        for _ in 0..size.height {
+            unsafe {
+                let src_addr = src_data.as_ptr().add(src_index as usize) as u32;
+                let dst_addr = dst_data.as_mut_ptr().add(dst_index as usize) as u32;
+                dma::copy_mem_bswap(&mut dma_channel, src_addr, dst_addr, 2, size.width);
+            }
+            src_index += atlas.size.width as i32;
+            dst_index += WIDTH as i32;
         }
-        src_index += atlas.size.width as i32;
-        dst_index += WIDTH as i32;
+    } else {
+        let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
+        let src_data = &atlas.data;
+        let dst_data = picosystem::display::framebuffer();
+
+        let mut src_index = src.x + src.y * atlas.size.width as i32;
+        let mut dst_index = dst.x + dst.y * WIDTH as i32;
+        for _ in 0..size.height {
+            unsafe {
+                let src_addr = src_data.as_ptr().add(src_index as usize) as u32;
+                let dst_addr = dst_data.as_mut_ptr().add(dst_index as usize) as u32;
+                dma::copy_mem_bswap(&mut dma_channel, src_addr, dst_addr, 2, size.width);
+            }
+            src_index += atlas.size.width as i32;
+            dst_index += WIDTH as i32;
+        }
     }
 }
 
@@ -110,7 +125,7 @@ fn main() -> ! {
 
             let subtile_x = position.x & subtile_mask;
 
-            for screen_x in (-subtile_x..(WIDTH as i32 - subtile_x)).step_by(32) {
+            for screen_x in (-subtile_x..(WIDTH as i32)).step_by(32) {
                 let world_x = position.x + screen_x;
 
                 let tile =
@@ -138,7 +153,7 @@ fn main() -> ! {
             //log::info!("drawn_y: {} progress: {}", drawn_y, progress);
             drawn_y += 32;
             world_y += 32;
-            if drawn_y >= HEIGHT as i32 {
+            if screen_y + 32 >= HEIGHT as i32 {
                 break;
             }
         }
