@@ -17,6 +17,35 @@ sprite!(sprite_atlas, "picosystem/examples/terrain_atlas.png", 1032);
 
 const TILE_SIZE: i32 = 32;
 
+struct LoadedTile {
+    data: [u16; (TILE_SIZE * TILE_SIZE) as usize],
+}
+
+impl LoadedTile {
+    fn new() -> Self {
+        LoadedTile {
+            data: [0; (TILE_SIZE * TILE_SIZE) as usize],
+        }
+    }
+}
+
+fn load_tile(atlas: &Sprite, src: Point, dst: &mut LoadedTile) {
+    unsafe {
+        let mut dma_channel = dma::DmaChannel::new(1);
+        let mut src_addr = atlas
+            .data
+            .as_ptr()
+            .add((src.x + src.y * atlas.size.width as i32) as usize)
+            as u32;
+        let mut dst_addr = dst.data.as_ptr() as u32;
+        for _ in 0..TILE_SIZE {
+            dma::copy_flash_to_mem(&mut dma_channel, src_addr, dst_addr, TILE_SIZE as u32 / 2);
+            src_addr += 2 * atlas.size.width as u32;
+            dst_addr += 2 * TILE_SIZE as u32;
+        }
+    }
+}
+
 fn draw_tile(display: &mut Display, atlas: &Sprite, src: Point, dst: Point, size: Size) -> bool {
     let mut buf = [0u16; TILE_SIZE as usize];
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
@@ -58,6 +87,32 @@ fn draw_tile(display: &mut Display, atlas: &Sprite, src: Point, dst: Point, size
     clipped_dst.size == size
 }
 
+fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: Size) {
+    let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
+    let src = clipped_dst.top_left - dst;
+    let dst = clipped_dst.top_left;
+
+    unsafe {
+        let mut src_ptr: *const u16 = tile.data.as_ptr();
+        let mut dst_ptr: *mut u16 = picosystem::display::framebuffer().as_mut_ptr();
+        src_ptr = src_ptr.add((src.x + src.y * TILE_SIZE) as usize);
+        dst_ptr = dst_ptr.add((dst.x + dst.y * WIDTH as i32) as usize);
+        for _ in 0..clipped_dst.size.height {
+            let w = clipped_dst.size.width;
+            for _ in 0..w {
+                let color = *src_ptr;
+                if color != 0 {
+                    *dst_ptr = color.to_be();
+                }
+                src_ptr = src_ptr.add(1);
+                dst_ptr = dst_ptr.add(1);
+            }
+            src_ptr = src_ptr.add(TILE_SIZE as usize - w as usize);
+            dst_ptr = dst_ptr.add(WIDTH as usize - w as usize);
+        }
+    }
+}
+
 fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
     let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
@@ -97,6 +152,10 @@ fn draw_tiles<F>(
     let subtile_y = position.y & subtile_mask;
     let mut tile_cache = heapless::LinearMap::<Point, Point, 64>::new();
 
+    let rock = Point::new(672, 672);
+    let mut rock_tile = LoadedTile::new();
+    load_tile(&atlas, rock, &mut rock_tile);
+
     let mut tile_cache_misses = 0;
     let mut tile_cache_lookups = 0;
     let mut tile_cache_insert_failures = 0;
@@ -116,6 +175,8 @@ fn draw_tiles<F>(
 
         let subtile_x = position.x & subtile_mask;
 
+        let mut missing_rocks = heapless::Vec::<Point, 64>::new();
+
         for screen_x in (-subtile_x..(WIDTH as i32)).step_by(32) {
             let world_x = position.x + screen_x;
             let map_coord = Point::new(world_x & !subtile_mask, world_y & !subtile_mask);
@@ -125,6 +186,12 @@ fn draw_tiles<F>(
                 copy_tile(
                     display,
                     *cached_src,
+                    Point::new(screen_x, screen_y),
+                    Size::new(32, 32),
+                );
+                draw_transparent_tile(
+                    display,
+                    &rock_tile,
                     Point::new(screen_x, screen_y),
                     Size::new(32, 32),
                 );
@@ -139,8 +206,14 @@ fn draw_tiles<F>(
                         tile_cache_insert_failures += 1;
                     }
                 }
+                missing_rocks.push(screen_coord).unwrap();
             }
         }
+
+        for screen_coord in missing_rocks {
+            draw_transparent_tile(display, &rock_tile, screen_coord, Size::new(32, 32));
+        }
+
         draw_time += time::time_us() - row_start_time;
 
         drawn_y += 32;
