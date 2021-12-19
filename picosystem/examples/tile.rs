@@ -58,27 +58,25 @@ fn draw_tile(display: &mut Display, atlas: &Sprite, src: Point, dst: Point, size
     clipped_dst.size == size
 }
 
-fn draw_tile_cached(display: &mut Display, src: Point, dst: Point, size: Size) {
+fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
-    if true || clipped_dst.size != size {
-        let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
-        let fb_data = picosystem::display::framebuffer();
+    let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
+    let fb_data = picosystem::display::framebuffer();
 
-        let src = src + clipped_dst.top_left - dst;
-        let dst = clipped_dst.top_left;
-        let size = clipped_dst.size;
+    let src = src + clipped_dst.top_left - dst;
+    let dst = clipped_dst.top_left;
+    let size = clipped_dst.size;
 
-        let mut src_index = src.x + src.y * WIDTH as i32;
-        let mut dst_index = dst.x + dst.y * WIDTH as i32;
-        for _ in 0..size.height {
-            unsafe {
-                let src_addr = fb_data.as_ptr().add(src_index as usize) as u32;
-                let dst_addr = fb_data.as_mut_ptr().add(dst_index as usize) as u32;
-                dma::copy_mem(&mut dma_channel, src_addr, dst_addr, 2, size.width);
-            }
-            src_index += WIDTH as i32;
-            dst_index += WIDTH as i32;
+    let mut src_index = src.x + src.y * WIDTH as i32;
+    let mut dst_index = dst.x + dst.y * WIDTH as i32;
+    for _ in 0..size.height {
+        unsafe {
+            let src_addr = fb_data.as_ptr().add(src_index as usize) as u32;
+            let dst_addr = fb_data.as_mut_ptr().add(dst_index as usize) as u32;
+            dma::copy_mem(&mut dma_channel, src_addr, dst_addr, 2, size.width);
         }
+        src_index += WIDTH as i32;
+        dst_index += WIDTH as i32;
     }
 }
 
@@ -124,7 +122,7 @@ fn draw_tiles<F>(
             let tile = map_generator(map_coord);
             tile_cache_lookups += 1;
             if let Some(cached_src) = tile_cache.get(&tile) {
-                draw_tile_cached(
+                copy_tile(
                     display,
                     *cached_src,
                     Point::new(screen_x, screen_y),
