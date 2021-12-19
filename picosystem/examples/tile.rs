@@ -132,13 +132,20 @@ fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, s
             }
             let mut x = 0;
             while mask != 0 {
-                let n = if mask & 0x1 == 0x1 {
+                const LOOKAHEAD: u32 = 0x7;
+                let n = if mask & LOOKAHEAD == LOOKAHEAD {
                     let n = mask.trailing_ones();
                     dma_channel.wait();
                     dma::start_copy_mem(&mut dma_channel, src_ptr as u32, dst_ptr as u32, 2, n);
                     n
-                } else {
+                } else if mask & LOOKAHEAD == 0x0 {
                     mask.trailing_zeros()
+                } else {
+                    let color = *src_ptr;
+                    if mask & 1 != 0 {
+                        *dst_ptr = color;
+                    }
+                    1
                 };
                 src_ptr = src_ptr.add(n as usize);
                 dst_ptr = dst_ptr.add(n as usize);
@@ -193,8 +200,11 @@ fn draw_tiles<F>(
     let mut tile_cache = heapless::LinearMap::<Point, Point, 64>::new();
 
     let rock = Point::new(672, 672);
+    let sparse_grass = Point::new(32, 992);
     let mut rock_tile = LoadedTile::new();
+    let mut sparse_grass_tile = LoadedTile::new();
     load_tile(&atlas, rock, &mut rock_tile);
+    load_tile(&atlas, sparse_grass, &mut sparse_grass_tile);
 
     let mut tile_cache_misses = 0;
     let mut tile_cache_lookups = 0;
@@ -215,7 +225,7 @@ fn draw_tiles<F>(
 
         let subtile_x = position.x & subtile_mask;
 
-        let mut missing_rocks = heapless::Vec::<Point, 64>::new();
+        let mut missing_transparent_tiles = heapless::Vec::<Point, 64>::new();
 
         for screen_x in (-subtile_x..(WIDTH as i32)).step_by(32) {
             let world_x = position.x + screen_x;
@@ -246,11 +256,11 @@ fn draw_tiles<F>(
                         tile_cache_insert_failures += 1;
                     }
                 }
-                missing_rocks.push(screen_coord).unwrap();
+                missing_transparent_tiles.push(screen_coord).unwrap();
             }
         }
 
-        for screen_coord in missing_rocks {
+        for screen_coord in missing_transparent_tiles {
             draw_transparent_tile(display, &rock_tile, screen_coord, Size::new(32, 32));
         }
 
