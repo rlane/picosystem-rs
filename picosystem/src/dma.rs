@@ -84,7 +84,7 @@ pub(crate) unsafe fn set_mem(
     dma_channel.wait();
 }
 
-pub unsafe fn copy_mem(
+pub unsafe fn start_copy_mem(
     dma_channel: &mut DmaChannel,
     src: u32,
     dst: u32,
@@ -104,6 +104,16 @@ pub unsafe fn copy_mem(
         w.en().set_bit();
         w
     });
+}
+
+pub unsafe fn copy_mem(
+    dma_channel: &mut DmaChannel,
+    src: u32,
+    dst: u32,
+    elem_size: u32,
+    count: u32,
+) {
+    start_copy_mem(dma_channel, src, dst, elem_size, count);
     dma_channel.wait();
 }
 

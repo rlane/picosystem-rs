@@ -19,12 +19,14 @@ const TILE_SIZE: i32 = 32;
 
 struct LoadedTile {
     data: [u16; (TILE_SIZE * TILE_SIZE) as usize],
+    mask: [u32; TILE_SIZE as usize],
 }
 
 impl LoadedTile {
     fn new() -> Self {
         LoadedTile {
             data: [0; (TILE_SIZE * TILE_SIZE) as usize],
+            mask: [0; TILE_SIZE as usize],
         }
     }
 }
@@ -39,22 +41,31 @@ fn load_tile(atlas: &Sprite, src: Point, dst: &mut LoadedTile) {
             .add((src.x + src.y * atlas.size.width as i32) as usize)
             as u32;
         let mut dst_addr = dst.data.as_ptr() as u32;
-        for _ in 0..TILE_SIZE {
+        for y in 0..TILE_SIZE {
             dma::copy_flash_to_mem(
                 &mut dma_channel,
                 src_addr,
                 buf.as_mut_ptr() as u32,
                 TILE_SIZE as u32 / 2,
             );
-            dma::copy_mem_bswap(
+            dma::start_copy_mem_bswap(
                 &mut dma_channel,
                 buf.as_ptr() as u32,
                 dst_addr,
                 2,
                 TILE_SIZE as u32,
             );
+            let mut mask: u32 = 0;
+            for x in 0..TILE_SIZE {
+                let color = buf[x as usize];
+                if color != 0 {
+                    mask |= 1 << x;
+                }
+            }
+            dst.mask[y as usize] = mask;
             src_addr += 2 * atlas.size.width as u32;
             dst_addr += 2 * TILE_SIZE as u32;
+            dma_channel.wait();
         }
     }
 }
@@ -106,23 +117,39 @@ fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, s
     let dst = clipped_dst.top_left;
 
     unsafe {
+        let mut dma_channel = dma::DmaChannel::new(1);
         let mut src_ptr: *const u16 = tile.data.as_ptr();
         let mut dst_ptr: *mut u16 = picosystem::display::framebuffer().as_mut_ptr();
+        let mut mask_ptr: *const u32 = tile.mask.as_ptr().add(src.y as usize);
         src_ptr = src_ptr.add((src.x + src.y * TILE_SIZE) as usize);
         dst_ptr = dst_ptr.add((dst.x + dst.y * WIDTH as i32) as usize);
         for _ in 0..clipped_dst.size.height {
             let w = clipped_dst.size.width;
-            for _ in 0..w {
-                let color = *src_ptr;
-                if color != 0 {
-                    *dst_ptr = color;
-                }
-                src_ptr = src_ptr.add(1);
-                dst_ptr = dst_ptr.add(1);
+            let mut mask = *mask_ptr;
+            mask >>= src.x;
+            if w < 32 {
+                mask &= (1 << w) - 1;
             }
-            src_ptr = src_ptr.add(TILE_SIZE as usize - w as usize);
-            dst_ptr = dst_ptr.add(WIDTH as usize - w as usize);
+            let mut x = 0;
+            while mask != 0 {
+                let n = if mask & 0x1 == 0x1 {
+                    let n = mask.trailing_ones();
+                    dma_channel.wait();
+                    dma::start_copy_mem(&mut dma_channel, src_ptr as u32, dst_ptr as u32, 2, n);
+                    n
+                } else {
+                    mask.trailing_zeros()
+                };
+                src_ptr = src_ptr.add(n as usize);
+                dst_ptr = dst_ptr.add(n as usize);
+                mask >>= n;
+                x += n;
+            }
+            src_ptr = src_ptr.add(TILE_SIZE as usize - x as usize);
+            dst_ptr = dst_ptr.add(WIDTH as usize - x as usize);
+            mask_ptr = mask_ptr.add(1);
         }
+        dma_channel.wait();
     }
 }
 
