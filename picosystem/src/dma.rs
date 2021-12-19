@@ -131,6 +131,36 @@ pub unsafe fn copy_mem_bswap(
     dma_channel.wait();
 }
 
+pub unsafe fn copy_flash_to_mem(dma_channel: &mut DmaChannel, src: u32, dst: u32, count: u32) {
+    // Flush XIP FIFO.
+    let xip_ctrl = &*pico::pac::XIP_CTRL::PTR;
+    while xip_ctrl.stat.read().fifo_empty().bit_is_clear() {
+        log::info!("XIP FIFO not empty");
+        cortex_m::asm::nop();
+    }
+    xip_ctrl.stream_addr.write(|w| w.bits(src));
+    xip_ctrl.stream_ctr.write(|w| w.bits(count));
+
+    let channel = dma_channel.channel;
+    dma_channel.set_src(0x50400000); // XIP_AUX_BASE
+    dma_channel.set_dst(dst);
+    dma_channel.set_count(count);
+    dma_channel.set_ctrl_and_trigger(|w| {
+        w.treq_sel().bits(37); // DREQ_XIP_STREAM
+        w.chain_to().bits(channel as u8);
+        w.incr_write().set_bit();
+        w.data_size().bits(2); // 4 bytes
+        w.en().set_bit();
+        w
+    });
+    dma_channel.wait();
+
+    while xip_ctrl.stat.read().fifo_empty().bit_is_clear() {
+        log::info!("XIP FIFO not empty");
+        cortex_m::asm::nop();
+    }
+}
+
 pub(crate) unsafe fn start_copy_to_spi(
     dma_channel: &mut DmaChannel,
     src: u32,
