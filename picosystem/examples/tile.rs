@@ -30,6 +30,7 @@ impl LoadedTile {
 }
 
 fn load_tile(atlas: &Sprite, src: Point, dst: &mut LoadedTile) {
+    let mut buf = [0u16; TILE_SIZE as usize];
     unsafe {
         let mut dma_channel = dma::DmaChannel::new(1);
         let mut src_addr = atlas
@@ -39,7 +40,19 @@ fn load_tile(atlas: &Sprite, src: Point, dst: &mut LoadedTile) {
             as u32;
         let mut dst_addr = dst.data.as_ptr() as u32;
         for _ in 0..TILE_SIZE {
-            dma::copy_flash_to_mem(&mut dma_channel, src_addr, dst_addr, TILE_SIZE as u32 / 2);
+            dma::copy_flash_to_mem(
+                &mut dma_channel,
+                src_addr,
+                buf.as_mut_ptr() as u32,
+                TILE_SIZE as u32 / 2,
+            );
+            dma::copy_mem_bswap(
+                &mut dma_channel,
+                buf.as_ptr() as u32,
+                dst_addr,
+                2,
+                TILE_SIZE as u32,
+            );
             src_addr += 2 * atlas.size.width as u32;
             dst_addr += 2 * TILE_SIZE as u32;
         }
@@ -102,7 +115,7 @@ fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, s
             for _ in 0..w {
                 let color = *src_ptr;
                 if color != 0 {
-                    *dst_ptr = color.to_be();
+                    *dst_ptr = color;
                 }
                 src_ptr = src_ptr.add(1);
                 dst_ptr = dst_ptr.add(1);
