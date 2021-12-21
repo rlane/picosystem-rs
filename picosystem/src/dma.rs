@@ -62,7 +62,7 @@ fn wordsize(elem_size: u32) -> u32 {
     }
 }
 
-pub(crate) unsafe fn set_mem(
+pub unsafe fn start_set_mem(
     dma_channel: &mut DmaChannel,
     src: u32,
     dst: u32,
@@ -81,6 +81,16 @@ pub(crate) unsafe fn set_mem(
         w.en().set_bit();
         w
     });
+}
+
+pub unsafe fn set_mem(
+    dma_channel: &mut DmaChannel,
+    src: u32,
+    dst: u32,
+    elem_size: u32,
+    count: u32,
+) {
+    start_set_mem(dma_channel, src, dst, elem_size, count);
     dma_channel.wait();
 }
 

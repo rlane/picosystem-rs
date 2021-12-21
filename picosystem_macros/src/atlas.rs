@@ -77,9 +77,17 @@ pub fn atlas(input: TokenStream) -> TokenStream {
                 mask[y as usize] = m;
             }
 
+            let mut compressed_data = [0u16; 2 * TILE_SIZE * TILE_SIZE + 1];
+            let mut compressed_length =
+                picosystem_compressor::compress(&data, &mut compressed_data);
+            if compressed_length % 2 != 0 {
+                compressed_length += 1;
+            }
+
             code.push_str(&format!(
                 r"
         pub fn {}{}() -> &'static picosystem::tile::Tile {{
+            static COMPRESSION_RATIO: u32 = {};
             static DATA: [u16; {}] = {:?};
             static MASK: [u32; {}] = {:?};
             static TILE: picosystem::tile::Tile = picosystem::tile::Tile {{
@@ -90,8 +98,9 @@ pub fn atlas(input: TokenStream) -> TokenStream {
         }}",
                 &function_name,
                 tile_index,
-                data.len(),
-                &data,
+                (100.0 * compressed_length as f64 / data.len() as f64) as u32,
+                compressed_length,
+                &compressed_data[0..compressed_length],
                 mask.len(),
                 &mask
             ));

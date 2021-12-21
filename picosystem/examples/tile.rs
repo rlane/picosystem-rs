@@ -44,14 +44,16 @@ impl LoadedTile {
 }
 
 fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
+    let mut buf = [0u16; (2 * TILE_SIZE * TILE_SIZE + 1) as usize];
     unsafe {
         let mut dma_channel = dma::DmaChannel::new(1);
         dma::copy_flash_to_mem(
             &mut dma_channel,
             src.data.as_ptr() as u32,
-            dst.data.as_ptr() as u32,
-            (TILE_SIZE * TILE_SIZE) as u32 / 2,
+            buf.as_mut_ptr() as u32,
+            src.data.len() as u32 / 2,
         );
+        decompress_dma(&buf, &mut dst.data);
         if masked {
             dma::copy_flash_to_mem(
                 &mut dma_channel,
@@ -60,6 +62,54 @@ fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
                 TILE_SIZE as u32,
             );
         }
+    }
+}
+
+pub fn decompress_dma(input: &[u16], output: &mut [u16]) {
+    unsafe {
+        let mut dma_channel0 = dma::DmaChannel::new(1);
+        let mut dma_channel1 = dma::DmaChannel::new(2);
+        let mut src_ptr: *const u16 = input.as_ptr().add(1);
+        let end_ptr = input.as_ptr().add(input.len());
+        let mut dst_ptr: *mut u16 = output.as_mut_ptr();
+
+        while src_ptr < end_ptr {
+            let ctrl = *src_ptr;
+            src_ptr = src_ptr.add(1);
+            let data_length = ctrl & 0xff;
+            let run_length = ctrl >> 8;
+
+            if data_length == 0 {
+                dst_ptr = dst_ptr.add(run_length as usize);
+                continue;
+            }
+
+            dma_channel0.wait();
+            dma::start_copy_mem(
+                &mut dma_channel0,
+                src_ptr as u32,
+                dst_ptr as u32,
+                2,
+                data_length as u32,
+            );
+            src_ptr = src_ptr.add(data_length as usize);
+            dst_ptr = dst_ptr.add(data_length as usize);
+
+            if run_length > 0 {
+                dma_channel1.wait();
+                dma::start_set_mem(
+                    &mut dma_channel1,
+                    src_ptr.offset(-1) as u32,
+                    dst_ptr as u32,
+                    2,
+                    run_length as u32,
+                );
+                dst_ptr = dst_ptr.add(run_length as usize);
+            }
+        }
+
+        dma_channel0.wait();
+        dma_channel1.wait();
     }
 }
 
