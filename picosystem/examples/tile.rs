@@ -62,10 +62,8 @@ fn load_tile(src: &Tile, dst: &mut LoadedTile) {
 }
 
 fn draw_tile(display: &mut Display, tile: &Tile, src: Point, dst: Point, size: Size) -> bool {
-    let mut buf = [0u16; TILE_SIZE as usize];
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
-    let mut dma_channel0 = unsafe { dma::DmaChannel::new(1) };
-    let mut dma_channel1 = unsafe { dma::DmaChannel::new(2) };
+    let mut dma_channel = unsafe { dma::DmaChannel::new(1) };
 
     let src = src + clipped_dst.top_left - dst;
     let dst = clipped_dst.top_left;
@@ -78,27 +76,17 @@ fn draw_tile(display: &mut Display, tile: &Tile, src: Point, dst: Point, size: S
         unsafe {
             let src_addr = src_data.as_ptr().add(src_index as usize) as u32;
             let dst_addr = dst_data.as_mut_ptr().add(dst_index as usize) as u32;
-            let buf_addr = buf.as_mut_ptr() as u32;
-            dma_channel1.wait();
             dma::copy_flash_to_mem(
-                &mut dma_channel0,
+                &mut dma_channel,
                 src_addr,
-                buf_addr,
-                clipped_dst.size.width / 2,
-            );
-            dma::start_copy_mem(
-                &mut dma_channel1,
-                buf_addr,
                 dst_addr,
-                2,
-                clipped_dst.size.width,
+                clipped_dst.size.width / 2,
             );
         }
         src_index += TILE_SIZE;
         dst_index += WIDTH as i32;
     }
 
-    dma_channel1.wait();
     clipped_dst.size == size
 }
 
