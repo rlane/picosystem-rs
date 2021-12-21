@@ -1,3 +1,5 @@
+mod atlas;
+
 use image::io::Reader as ImageReader;
 use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result};
@@ -80,4 +82,9 @@ pub fn sprite(input: TokenStream) -> TokenStream {
         }
     ));
     code.parse().unwrap()
+}
+
+#[proc_macro]
+pub fn atlas(input: TokenStream) -> TokenStream {
+    atlas::atlas(input)
 }
