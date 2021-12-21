@@ -5,6 +5,7 @@ resolver = "2"
 members = [
     "picosystem",
     "games",
+    "compressor",
 ]
 exclude = ["picosystem_macros"]
 

@@ -722,6 +722,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "picosystem_compressor"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "picosystem_games"
 version = "0.1.0"
 dependencies = [
