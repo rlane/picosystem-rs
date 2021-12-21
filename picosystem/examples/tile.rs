@@ -154,11 +154,13 @@ fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
         unsafe {
             let src_addr = fb_data.as_ptr().add(src_index as usize) as u32;
             let dst_addr = fb_data.as_mut_ptr().add(dst_index as usize) as u32;
-            dma::copy_mem(&mut dma_channel, src_addr, dst_addr, 2, size.width);
+            dma_channel.wait();
+            dma::start_copy_mem(&mut dma_channel, src_addr, dst_addr, 2, size.width);
         }
         src_index += WIDTH as i32;
         dst_index += WIDTH as i32;
     }
+    dma_channel.wait();
 }
 
 fn draw_tiles<F>(display: &mut Display, position: Point, map_generator: &F, verbose: bool)
