@@ -43,7 +43,7 @@ impl LoadedTile {
     }
 }
 
-fn load_tile(src: &Tile, dst: &mut LoadedTile) {
+fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
     unsafe {
         let mut dma_channel = dma::DmaChannel::new(1);
         dma::copy_flash_to_mem(
@@ -52,12 +52,14 @@ fn load_tile(src: &Tile, dst: &mut LoadedTile) {
             dst.data.as_ptr() as u32,
             (TILE_SIZE * TILE_SIZE) as u32 / 2,
         );
-        dma::copy_flash_to_mem(
-            &mut dma_channel,
-            src.mask.as_ptr() as u32,
-            dst.mask.as_ptr() as u32,
-            TILE_SIZE as u32,
-        );
+        if masked {
+            dma::copy_flash_to_mem(
+                &mut dma_channel,
+                src.mask.as_ptr() as u32,
+                dst.mask.as_ptr() as u32,
+                TILE_SIZE as u32,
+            );
+        }
     }
 }
 
@@ -70,8 +72,8 @@ fn draw_opaque_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: 
 
     let src_data = &tile.data;
     let dst_data = picosystem::display::framebuffer();
-    let mut src_index = src.x + src.y * TILE_SIZE;
-    let mut dst_index = dst.x + dst.y * WIDTH as i32;
+    let src_index = src.x + src.y * TILE_SIZE;
+    let dst_index = dst.x + dst.y * WIDTH as i32;
     unsafe {
         let mut src_ptr = src_data.as_ptr().add(src_index as usize);
         let mut dst_ptr = dst_data.as_mut_ptr().add(dst_index as usize);
@@ -227,7 +229,7 @@ where
                     } else {
                         overlay_tile_cache_misses += 1;
                         let mut loaded_tile = LoadedTile::new();
-                        load_tile(overlay, &mut loaded_tile);
+                        load_tile(overlay, &mut loaded_tile, true);
                         draw_transparent_tile(
                             display,
                             &loaded_tile,
@@ -242,7 +244,7 @@ where
             } else {
                 base_tile_cache_misses += 1;
                 let mut loaded_tile = LoadedTile::new();
-                load_tile(map_tile.base, &mut loaded_tile);
+                load_tile(map_tile.base, &mut loaded_tile, false);
                 if (draw_opaque_tile(display, &loaded_tile, screen_coord, Size::new(32, 32))
                     || (screen_x >= 0 && screen_y < 0))
                     && enable_tile_cache
@@ -281,7 +283,7 @@ where
         } else {
             overlay_tile_cache_misses += 1;
             let mut loaded_tile = LoadedTile::new();
-            load_tile(overlay, &mut loaded_tile);
+            load_tile(overlay, &mut loaded_tile, true);
             draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
             if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
                 overlay_tile_cache_insert_failures += 1;
