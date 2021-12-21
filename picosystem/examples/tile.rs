@@ -61,36 +61,39 @@ fn load_tile(src: &Tile, dst: &mut LoadedTile) {
     }
 }
 
-fn draw_tile(display: &mut Display, tile: &Tile, src: Point, dst: Point, size: Size) -> bool {
+fn draw_opaque_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: Size) -> bool {
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
     let mut dma_channel = unsafe { dma::DmaChannel::new(1) };
 
-    let src = src + clipped_dst.top_left - dst;
+    let src = clipped_dst.top_left - dst;
     let dst = clipped_dst.top_left;
 
     let src_data = &tile.data;
     let dst_data = picosystem::display::framebuffer();
     let mut src_index = src.x + src.y * TILE_SIZE;
     let mut dst_index = dst.x + dst.y * WIDTH as i32;
-    for _ in 0..clipped_dst.size.height {
-        unsafe {
-            let src_addr = src_data.as_ptr().add(src_index as usize) as u32;
-            let dst_addr = dst_data.as_mut_ptr().add(dst_index as usize) as u32;
-            dma::copy_flash_to_mem(
+    unsafe {
+        let mut src_ptr = src_data.as_ptr().add(src_index as usize);
+        let mut dst_ptr = dst_data.as_mut_ptr().add(dst_index as usize);
+        for _ in 0..clipped_dst.size.height {
+            dma_channel.wait();
+            dma::start_copy_mem(
                 &mut dma_channel,
-                src_addr,
-                dst_addr,
+                src_ptr as u32,
+                dst_ptr as u32,
+                4,
                 clipped_dst.size.width / 2,
             );
+            src_ptr = src_ptr.add(TILE_SIZE as usize);
+            dst_ptr = dst_ptr.add(WIDTH as usize);
         }
-        src_index += TILE_SIZE;
-        dst_index += WIDTH as i32;
     }
 
+    dma_channel.wait();
     clipped_dst.size == size
 }
 
-fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: Size) {
+fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: Size) -> bool {
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
     let src = clipped_dst.top_left - dst;
     let dst = clipped_dst.top_left;
@@ -137,6 +140,8 @@ fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, s
         }
         dma_channel.wait();
     }
+
+    clipped_dst.size == size
 }
 
 fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
@@ -236,13 +241,10 @@ where
                 }
             } else {
                 base_tile_cache_misses += 1;
-                if (draw_tile(
-                    display,
-                    map_tile.base,
-                    Point::new(0, 0),
-                    screen_coord,
-                    Size::new(32, 32),
-                ) || (screen_x >= 0 && screen_y < 0))
+                let mut loaded_tile = LoadedTile::new();
+                load_tile(map_tile.base, &mut loaded_tile);
+                if (draw_opaque_tile(display, &loaded_tile, screen_coord, Size::new(32, 32))
+                    || (screen_x >= 0 && screen_y < 0))
                     && enable_tile_cache
                 {
                     if let Err(_) = tile_cache.insert(tile_id(map_tile.base), screen_coord) {
