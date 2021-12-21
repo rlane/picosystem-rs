@@ -9,7 +9,7 @@ use picosystem::display::{Display, HEIGHT, WIDTH};
 use picosystem::dma;
 use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
-use picosystem::sprite::Sprite;
+use picosystem::tile::Tile;
 use picosystem::time;
 use picosystem_macros::atlas;
 
@@ -18,15 +18,15 @@ atlas!(atlas, "picosystem/examples/terrain_atlas.png", 32);
 const TILE_SIZE: i32 = 32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SpriteId(u32);
+struct TileId(u32);
 
-fn sprite_id(sprite: &Sprite) -> SpriteId {
-    SpriteId(sprite as *const Sprite as u32)
+fn tile_id(tile: &Tile) -> TileId {
+    TileId(tile as *const Tile as u32)
 }
 
 struct MapTile {
-    base: &'static Sprite<'static>,
-    overlay: Option<&'static Sprite<'static>>,
+    base: &'static Tile,
+    overlay: Option<&'static Tile>,
 }
 
 struct LoadedTile {
@@ -43,42 +43,25 @@ impl LoadedTile {
     }
 }
 
-fn load_tile(src: &Sprite, dst: &mut LoadedTile) {
-    let mut buf = [0u16; TILE_SIZE as usize];
+fn load_tile(src: &Tile, dst: &mut LoadedTile) {
     unsafe {
         let mut dma_channel = dma::DmaChannel::new(1);
-        let mut src_addr = src.data.as_ptr() as u32;
-        let mut dst_addr = dst.data.as_ptr() as u32;
-        for y in 0..TILE_SIZE {
-            dma::copy_flash_to_mem(
-                &mut dma_channel,
-                src_addr,
-                buf.as_mut_ptr() as u32,
-                TILE_SIZE as u32 / 2,
-            );
-            dma::start_copy_mem_bswap(
-                &mut dma_channel,
-                buf.as_ptr() as u32,
-                dst_addr,
-                2,
-                TILE_SIZE as u32,
-            );
-            let mut mask: u32 = 0;
-            for x in 0..TILE_SIZE {
-                let color = buf[x as usize];
-                if color != 0 {
-                    mask |= 1 << x;
-                }
-            }
-            dst.mask[y as usize] = mask;
-            src_addr += 2 * src.size.width as u32;
-            dst_addr += 2 * TILE_SIZE as u32;
-            dma_channel.wait();
-        }
+        dma::copy_flash_to_mem(
+            &mut dma_channel,
+            src.data.as_ptr() as u32,
+            dst.data.as_ptr() as u32,
+            (TILE_SIZE * TILE_SIZE) as u32 / 2,
+        );
+        dma::copy_flash_to_mem(
+            &mut dma_channel,
+            src.mask.as_ptr() as u32,
+            dst.mask.as_ptr() as u32,
+            TILE_SIZE as u32,
+        );
     }
 }
 
-fn draw_tile(display: &mut Display, sprite: &Sprite, src: Point, dst: Point, size: Size) -> bool {
+fn draw_tile(display: &mut Display, tile: &Tile, src: Point, dst: Point, size: Size) -> bool {
     let mut buf = [0u16; TILE_SIZE as usize];
     let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
     let mut dma_channel0 = unsafe { dma::DmaChannel::new(1) };
@@ -87,9 +70,9 @@ fn draw_tile(display: &mut Display, sprite: &Sprite, src: Point, dst: Point, siz
     let src = src + clipped_dst.top_left - dst;
     let dst = clipped_dst.top_left;
 
-    let src_data = &sprite.data;
+    let src_data = &tile.data;
     let dst_data = picosystem::display::framebuffer();
-    let mut src_index = src.x + src.y * sprite.size.width as i32;
+    let mut src_index = src.x + src.y * TILE_SIZE;
     let mut dst_index = dst.x + dst.y * WIDTH as i32;
     for _ in 0..clipped_dst.size.height {
         unsafe {
@@ -103,7 +86,7 @@ fn draw_tile(display: &mut Display, sprite: &Sprite, src: Point, dst: Point, siz
                 buf_addr,
                 clipped_dst.size.width / 2,
             );
-            dma::start_copy_mem_bswap(
+            dma::start_copy_mem(
                 &mut dma_channel1,
                 buf_addr,
                 dst_addr,
@@ -111,7 +94,7 @@ fn draw_tile(display: &mut Display, sprite: &Sprite, src: Point, dst: Point, siz
                 clipped_dst.size.width,
             );
         }
-        src_index += sprite.size.width as i32;
+        src_index += TILE_SIZE;
         dst_index += WIDTH as i32;
     }
 
@@ -201,17 +184,17 @@ where
     let mut world_y = position.y;
     let subtile_y = position.y & subtile_mask;
 
-    let mut tile_cache = heapless::LinearMap::<SpriteId, Point, 64>::new();
+    let mut tile_cache = heapless::LinearMap::<TileId, Point, 64>::new();
     let mut base_tile_cache_misses = 0;
     let mut base_tile_cache_lookups = 0;
     let mut base_tile_cache_insert_failures = 0;
 
-    let mut overlay_tile_cache = heapless::LinearMap::<SpriteId, LoadedTile, 4>::new();
+    let mut overlay_tile_cache = heapless::LinearMap::<TileId, LoadedTile, 4>::new();
     let mut overlay_tile_cache_misses = 0;
     let mut overlay_tile_cache_lookups = 0;
     let mut overlay_tile_cache_insert_failures = 0;
 
-    let mut missing_transparent_tiles = heapless::Vec::<(Point, &'static Sprite), 64>::new();
+    let mut missing_transparent_tiles = heapless::Vec::<(Point, &'static Tile), 64>::new();
 
     let mut slow_draw = false;
     let mut draw_time = 0;
@@ -235,11 +218,11 @@ where
             let screen_coord = Point::new(screen_x, screen_y);
             let map_tile = map_generator(map_coord);
             base_tile_cache_lookups += 1;
-            if let Some(cached_src) = tile_cache.get(&sprite_id(map_tile.base)) {
+            if let Some(cached_src) = tile_cache.get(&tile_id(map_tile.base)) {
                 copy_tile(display, *cached_src, screen_coord, Size::new(32, 32));
                 if let Some(overlay) = map_tile.overlay {
                     overlay_tile_cache_lookups += 1;
-                    if let Some(cached_overlay_tile) = overlay_tile_cache.get(&sprite_id(overlay)) {
+                    if let Some(cached_overlay_tile) = overlay_tile_cache.get(&tile_id(overlay)) {
                         draw_transparent_tile(
                             display,
                             cached_overlay_tile,
@@ -256,7 +239,7 @@ where
                             screen_coord,
                             Size::new(32, 32),
                         );
-                        if let Err(_) = overlay_tile_cache.insert(sprite_id(overlay), loaded_tile) {
+                        if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
                             overlay_tile_cache_insert_failures += 1;
                         }
                     }
@@ -272,7 +255,7 @@ where
                 ) || (screen_x >= 0 && screen_y < 0))
                     && enable_tile_cache
                 {
-                    if let Err(_) = tile_cache.insert(sprite_id(map_tile.base), screen_coord) {
+                    if let Err(_) = tile_cache.insert(tile_id(map_tile.base), screen_coord) {
                         base_tile_cache_insert_failures += 1;
                     }
                 }
@@ -296,7 +279,7 @@ where
     let draw_start_time = time::time_us();
     for (screen_coord, overlay) in missing_transparent_tiles {
         overlay_tile_cache_lookups += 1;
-        if let Some(cached_overlay_tile) = overlay_tile_cache.get(&sprite_id(overlay)) {
+        if let Some(cached_overlay_tile) = overlay_tile_cache.get(&tile_id(overlay)) {
             draw_transparent_tile(
                 display,
                 cached_overlay_tile,
@@ -308,7 +291,7 @@ where
             let mut loaded_tile = LoadedTile::new();
             load_tile(overlay, &mut loaded_tile);
             draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
-            if let Err(_) = overlay_tile_cache.insert(sprite_id(overlay), loaded_tile) {
+            if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
                 overlay_tile_cache_insert_failures += 1;
             }
         }
@@ -425,7 +408,7 @@ fn generate_map(position: Point) -> MapTile {
         atlas456(),
     ];
 
-    let translate_map = |c: char| -> &'static Sprite {
+    let translate_map = |c: char| -> &'static Tile {
         match c {
             'a' => grass_tiles[0],
             'b' => grey_brick_tiles[0],
@@ -552,7 +535,7 @@ fn generate_map(position: Point) -> MapTile {
     let hash = hasher.finish();
     let map_x = position.x / TILE_SIZE;
     let map_y = position.y / TILE_SIZE;
-    let mut base_sprite = if (0..MAP_SIZE).contains(&map_x) && (0..MAP_SIZE).contains(&map_y) {
+    let mut base_tile = if (0..MAP_SIZE).contains(&map_x) && (0..MAP_SIZE).contains(&map_y) {
         let index = (map_x + map_y * MAP_SIZE) as usize;
         let c = BASE_MAP.as_bytes()[index as usize];
         translate_map(c as char)
@@ -560,13 +543,13 @@ fn generate_map(position: Point) -> MapTile {
         ocean_tiles[hash as usize % ocean_tiles.len()]
     };
 
-    if sprite_id(base_sprite) == sprite_id(grass_tiles[0]) {
-        base_sprite = grass_tiles[(hash % grass_tiles.len() as u32) as usize];
-    } else if sprite_id(base_sprite) == sprite_id(grey_brick_tiles[0]) {
-        base_sprite = grey_brick_tiles[((map_x % 3) + 3 * (map_y % 3)) as usize];
+    if tile_id(base_tile) == tile_id(grass_tiles[0]) {
+        base_tile = grass_tiles[(hash % grass_tiles.len() as u32) as usize];
+    } else if tile_id(base_tile) == tile_id(grey_brick_tiles[0]) {
+        base_tile = grey_brick_tiles[((map_x % 3) + 3 * (map_y % 3)) as usize];
     }
 
-    let overlay_sprite = if sprite_id(base_sprite) == sprite_id(grass_tiles[0]) {
+    let overlay_tile = if tile_id(base_tile) == tile_id(grass_tiles[0]) {
         if hash & 0xff < 0x30 {
             Some(rock_tiles[(hash % rock_tiles.len() as u32) as usize])
         } else if hash & 0xff < 0x40 {
@@ -578,8 +561,8 @@ fn generate_map(position: Point) -> MapTile {
         None
     };
     MapTile {
-        base: base_sprite,
-        overlay: overlay_sprite,
+        base: base_tile,
+        overlay: overlay_tile,
     }
 }
 

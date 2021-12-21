@@ -4,6 +4,8 @@ use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::{parse_macro_input, Ident, LitInt, LitStr, Token};
 
+const TILE_SIZE: usize = 32;
+
 struct Atlas {
     function_name: Ident,
     path: LitStr,
@@ -32,6 +34,7 @@ pub fn atlas(input: TokenStream) -> TokenStream {
         tile_size,
     } = parse_macro_input!(input as Atlas);
     let tile_size = tile_size.base10_parse::<u32>().unwrap();
+    assert_eq!(tile_size as usize, TILE_SIZE);
     let img = ImageReader::open(path.value())
         .expect(&format!("Could not load image {:?}", &path))
         .decode()
@@ -57,33 +60,40 @@ pub fn atlas(input: TokenStream) -> TokenStream {
                         found_transparent_color = true;
                         transparent_color
                     } else {
-                        ((r >> 3) << 11) | ((g >> 2) << 5) | ((b >> 3) << 0)
+                        (((r >> 3) << 11) | ((g >> 2) << 5) | ((b >> 3) << 0)).to_be()
                     }
                 })
                 .collect();
 
+            let mut mask = [0u32; TILE_SIZE];
+            for y in 0..TILE_SIZE {
+                let mut m: u32 = 0;
+                for x in 0..TILE_SIZE {
+                    let color = data[(y * TILE_SIZE + x) as usize];
+                    if color != 0 {
+                        m |= 1 << x;
+                    }
+                }
+                mask[y as usize] = m;
+            }
+
             code.push_str(&format!(
                 r"
-        pub fn {}{}() -> &'static picosystem::sprite::Sprite<'static> {{
+        pub fn {}{}() -> &'static picosystem::tile::Tile {{
             static DATA: [u16; {}] = {:?};
-            static SPRITE: picosystem::sprite::Sprite<'static> = picosystem::sprite::Sprite {{
-                size: embedded_graphics::geometry::Size::new({}, {}),
-                transparent_color: {:?},
-                data: &DATA
+            static MASK: [u32; {}] = {:?};
+            static TILE: picosystem::tile::Tile = picosystem::tile::Tile {{
+                data: &DATA,
+                mask: &MASK,
             }};
-            &SPRITE
+            &TILE
         }}",
                 &function_name,
                 tile_index,
                 data.len(),
                 &data,
-                tile.width(),
-                tile.height(),
-                if found_transparent_color {
-                    Some(transparent_color)
-                } else {
-                    None
-                }
+                mask.len(),
+                &mask
             ));
 
             tile_index += 1;

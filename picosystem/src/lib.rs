@@ -10,6 +10,7 @@ pub mod input;
 pub mod interrupts;
 pub mod panic;
 pub mod sprite;
+pub mod tile;
 pub mod time;
 pub mod time_tracker;
 pub mod usb_logger;
