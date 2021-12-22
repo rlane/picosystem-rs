@@ -195,7 +195,11 @@ fn draw_transparent_tile(display: &mut Display, tile: &LoadedTile, dst: Point, s
                 };
                 src_ptr = src_ptr.add(n as usize);
                 dst_ptr = dst_ptr.add(n as usize);
-                mask >>= n;
+                if n == 32 {
+                    mask = 0;
+                } else {
+                    mask >>= n;
+                }
                 x += n;
             }
             src_ptr = src_ptr.add(TILE_SIZE as usize - x as usize);
