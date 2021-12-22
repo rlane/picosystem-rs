@@ -44,16 +44,14 @@ impl ImageDrawable for Sprite<'_> {
         D: DrawTarget<Color = Self::Color>,
     {
         // TODO transparency
-        let mut iy = 0;
-        for y in area.top_left.y..(area.top_left.y + area.size.height as i32) {
+        for (iy, y) in (area.top_left.y..(area.top_left.y + area.size.height as i32)).enumerate() {
             let start_index = area.top_left.x as usize + (y * self.size.width as i32) as usize;
             let end_index = start_index + area.size.width as usize;
             let slice = &self.data[start_index..end_index];
             target.fill_contiguous(
-                &Rectangle::new(Point::new(0, iy), Size::new(area.size.width, 1)),
+                &Rectangle::new(Point::new(0, iy as i32), Size::new(area.size.width, 1)),
                 slice.iter().map(|c| RawU16::new(*c).into()),
             )?;
-            iy += 1;
         }
         Ok(())
     }
