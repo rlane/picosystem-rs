@@ -1,4 +1,5 @@
 mod atlas;
+mod map;
 
 use image::io::Reader as ImageReader;
 use proc_macro::TokenStream;
@@ -87,4 +88,9 @@ pub fn sprite(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn atlas(input: TokenStream) -> TokenStream {
     atlas::atlas(input)
+}
+
+#[proc_macro]
+pub fn map(input: TokenStream) -> TokenStream {
+    map::map(input)
 }

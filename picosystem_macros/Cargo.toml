@@ -18,3 +18,4 @@ rustfmt-wrapper = "0.1.0"
 glob = "0.3"
 syn = "1.0"
 picosystem_compressor = { path = "../compressor" }
+tiled = "0.9.3"
