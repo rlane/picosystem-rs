@@ -45,6 +45,8 @@ impl LoadedTile {
 
 fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
     let mut buf = [0u16; (2 * TILE_SIZE * TILE_SIZE + 1) as usize];
+    assert_eq!(src.data.len() % 2, 0);
+    assert_eq!(src.data.len() < buf.len(), true);
     unsafe {
         let mut dma_channel = dma::DmaChannel::new(1);
         dma::copy_flash_to_mem(
@@ -53,7 +55,7 @@ fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
             buf.as_mut_ptr() as u32,
             src.data.len() as u32 / 2,
         );
-        decompress_dma(&buf, &mut dst.data);
+        decompress_dma(&buf[0..src.data.len()], &mut dst.data);
         if masked {
             dma::copy_flash_to_mem(
                 &mut dma_channel,
@@ -245,6 +247,7 @@ where
 
     let mut slow_draw = false;
     let mut draw_time = 0;
+    let mut load_time = 0;
     loop {
         let progress = display.flush_progress();
         let safe_y = (progress as i32 - WIDTH as i32 + 1) / WIDTH as i32;
@@ -279,7 +282,9 @@ where
                     } else {
                         overlay_tile_cache_misses += 1;
                         let mut loaded_tile = LoadedTile::new();
+                        let start_time = time::time_us();
                         load_tile(overlay, &mut loaded_tile, true);
+                        load_time += time::time_us() - start_time;
                         draw_transparent_tile(
                             display,
                             &loaded_tile,
@@ -294,7 +299,9 @@ where
             } else {
                 base_tile_cache_misses += 1;
                 let mut loaded_tile = LoadedTile::new();
+                let start_time = time::time_us();
                 load_tile(map_tile.base, &mut loaded_tile, false);
+                load_time += time::time_us() - start_time;
                 if (draw_opaque_tile(display, &loaded_tile, screen_coord, Size::new(32, 32))
                     || (screen_x >= 0 && screen_y < 0))
                     && enable_tile_cache
@@ -333,7 +340,9 @@ where
         } else {
             overlay_tile_cache_misses += 1;
             let mut loaded_tile = LoadedTile::new();
+            let start_time = time::time_us();
             load_tile(overlay, &mut loaded_tile, true);
+            load_time += time::time_us() - start_time;
             draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
             if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
                 overlay_tile_cache_insert_failures += 1;
@@ -343,7 +352,7 @@ where
     draw_time += time::time_us() - draw_start_time;
 
     if verbose {
-        log::info!("draw_time: {}us", draw_time);
+        log::info!("draw_time={}us load_time={}us", draw_time, load_time);
         log::info!("position: {:?}", position);
         log::info!(
             "Base tile cache: misses={} lookups={} insert_failures={} miss_rate={:.2}%",
