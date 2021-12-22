@@ -8,7 +8,7 @@
 #![no_std]
 
 pub fn decompressed_size(input: &[u16]) -> u16 {
-    if input.len() > 0 {
+    if !input.is_empty() {
         input[0]
     } else {
         0
@@ -75,7 +75,7 @@ pub fn compress(input: &[u16], output: &mut [u16]) -> usize {
         if value == last_value && run_length < 255 {
             run_length += 1;
         } else {
-            if run_length >= 3 || data_length >= 255 {
+            if run_length >= 3 || data_length == 255 {
                 write(ctrl_word(data_length, run_length));
                 for i in 0..(data_length as usize) {
                     write(input[data_start_index + i]);
