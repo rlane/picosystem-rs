@@ -19,7 +19,8 @@ const MAP_SIZE: usize = 100;
 
 pub struct Map {
     base_tile_indices: [u16; MAP_SIZE * MAP_SIZE],
-    tile_functions: [fn() -> &'static Tile; 1000],
+    overlay_tile_indices: [u16; MAP_SIZE * MAP_SIZE],
+    tile_functions: [fn() -> &'static Tile; 2048],
 }
 
 const _: &[u8] = include_bytes!("map.tmx");
@@ -391,19 +392,6 @@ where
 fn generate_map(position: Point) -> MapTile {
     let map = worldmap();
 
-    let plain_grass_tile = atlas800();
-    let sparse_grass = atlas993();
-
-    let rock_tiles = [
-        atlas826(),
-        atlas827(),
-        atlas828(),
-        atlas829(),
-        atlas829(),
-        atlas797(),
-        atlas765(),
-    ];
-
     let ocean_tiles = [
         atlas451(),
         atlas452(),
@@ -439,17 +427,18 @@ fn generate_map(position: Point) -> MapTile {
             ocean_tiles[hash as usize % ocean_tiles.len()]
         };
 
-    let overlay_tile = if tile_id(base_tile) == tile_id(plain_grass_tile) {
-        if hash & 0xff < 0x30 {
-            Some(rock_tiles[(hash % rock_tiles.len() as u32) as usize])
-        } else if hash & 0xff < 0x40 {
-            Some(sparse_grass)
+    let overlay_tile =
+        if (0..(MAP_SIZE as i32)).contains(&map_x) && (0..(MAP_SIZE as i32)).contains(&map_y) {
+            let index = (map_x + map_y * MAP_SIZE as i32) as usize;
+            let tile_index = map.overlay_tile_indices[index];
+            if tile_index as usize >= map.tile_functions.len() {
+                None
+            } else {
+                Some(map.tile_functions[tile_index as usize]())
+            }
         } else {
             None
-        }
-    } else {
-        None
-    };
+        };
 
     MapTile {
         base: base_tile,

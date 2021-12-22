@@ -38,15 +38,23 @@ pub fn map(input: TokenStream) -> TokenStream {
     assert_eq!(map.infinite, false);
 
     let mut base_tile_indices: Vec<u16> = Vec::new();
+    let mut overlay_tile_indices: Vec<u16> = Vec::new();
     let mut used_tile_functions: HashSet<u16> = HashSet::new();
-    {
-        let layer = &map.layers[0];
-        assert_eq!(layer.name, "Base");
+    for layer in &map.layers {
+        let tile_indices = match layer.name.as_str() {
+            "Base" => &mut base_tile_indices,
+            "Overlay" => &mut overlay_tile_indices,
+            _ => panic!("unexpected layer name"),
+        };
         if let tiled::LayerData::Finite(rows) = &layer.tiles {
             for row in rows {
                 for tile in row {
-                    let tile_index = (tile.gid - 1) as u16;
-                    base_tile_indices.push(tile_index);
+                    let tile_index = if tile.gid == 0 {
+                        !0
+                    } else {
+                        (tile.gid - 1) as u16
+                    };
+                    tile_indices.push(tile_index);
                     used_tile_functions.insert(tile_index);
                 }
             }
@@ -54,7 +62,7 @@ pub fn map(input: TokenStream) -> TokenStream {
     }
 
     let mut tile_functions_code = String::new();
-    for i in 0..1000 {
+    for i in 0..2048 {
         if used_tile_functions.contains(&i) {
             tile_functions_code.push_str(&format!("atlas{},\n", i));
         } else {
@@ -68,11 +76,12 @@ pub fn map(input: TokenStream) -> TokenStream {
         pub fn {}() -> &'static Map {{
             static MAP: Map = Map {{
                 base_tile_indices: {:?},
+                overlay_tile_indices: {:?},
                 tile_functions: [{}],
             }};
             &MAP
         }}",
-        &function_name, &base_tile_indices, &tile_functions_code
+        &function_name, &base_tile_indices, &overlay_tile_indices, &tile_functions_code
     ));
     code.parse().unwrap()
 }
