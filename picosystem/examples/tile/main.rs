@@ -13,7 +13,7 @@ use picosystem::tile::Tile;
 use picosystem::time;
 use picosystem_macros::atlas;
 
-atlas!(atlas, "picosystem/examples/terrain_atlas.png", 32);
+atlas!(atlas, "picosystem/examples/tile/terrain_atlas.png", 32);
 
 const TILE_SIZE: i32 = 32;
 
