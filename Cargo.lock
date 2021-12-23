@@ -805,6 +805,7 @@ dependencies = [
  "glob",
  "image",
  "log",
+ "picosystem",
  "picosystem_compressor",
  "rustfmt-wrapper",
  "structopt",

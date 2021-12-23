@@ -9,24 +9,15 @@ use picosystem::display::{Display, HEIGHT, WIDTH};
 use picosystem::dma;
 use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
-use picosystem::tile::Tile;
+use picosystem::map::{Map, MapTile, INVALID_TILE, MAP_SIZE, NUM_LAYERS};
+use picosystem::tile::{Tile, TILE_SIZE};
 use picosystem::time;
 use picosystem_macros::{atlas, map};
 
 atlas!(atlas, "picosystem/examples/tile/terrain_atlas.png", 32);
 
-const MAP_SIZE: usize = 100;
-
-pub struct Map {
-    base_tile_indices: [u16; MAP_SIZE * MAP_SIZE],
-    overlay_tile_indices: [u16; MAP_SIZE * MAP_SIZE],
-    tile_functions: [fn() -> &'static Tile; 2048],
-}
-
 const _: &[u8] = include_bytes!("map.tmx");
 map!(worldmap, "picosystem/examples/tile/map.tmx");
-
-const TILE_SIZE: i32 = 32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct TileId(u32);
@@ -35,9 +26,8 @@ fn tile_id(tile: &Tile) -> TileId {
     TileId(tile as *const Tile as u32)
 }
 
-struct MapTile {
-    base: &'static Tile,
-    overlay: Option<&'static Tile>,
+struct GenMapTile {
+    layers: heapless::Vec<&'static Tile, NUM_LAYERS>,
 }
 
 struct LoadedTile {
@@ -239,7 +229,7 @@ fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
 
 fn draw_tiles<F>(display: &mut Display, position: Point, map_generator: &F, verbose: bool)
 where
-    F: Fn(Point) -> MapTile,
+    F: Fn(Point) -> GenMapTile,
 {
     let subtile_mask = 32 - 1;
     let enable_tile_cache = true;
@@ -258,7 +248,7 @@ where
     let mut overlay_tile_cache_lookups = 0;
     let mut overlay_tile_cache_insert_failures = 0;
 
-    let mut missing_transparent_tiles = heapless::Vec::<(Point, &'static Tile), 64>::new();
+    let mut missing_transparent_tiles = heapless::Vec::<(Point, GenMapTile), 64>::new();
 
     let mut slow_draw = false;
     let mut draw_time = 0;
@@ -282,12 +272,15 @@ where
             let map_coord = Point::new(world_x & !subtile_mask, world_y & !subtile_mask);
             let screen_coord = Point::new(screen_x, screen_y);
             let map_tile = map_generator(map_coord);
+            let base_tile = map_tile.layers[0];
             base_tile_cache_lookups += 1;
-            if let Some(cached_src) = tile_cache.get(&tile_id(map_tile.base)) {
+            if let Some(cached_src) = tile_cache.get(&tile_id(base_tile)) {
                 copy_tile(display, *cached_src, screen_coord, Size::new(32, 32));
-                if let Some(overlay) = map_tile.overlay {
+                for overlay_tile in map_tile.layers[1..].iter() {
                     overlay_tile_cache_lookups += 1;
-                    if let Some(cached_overlay_tile) = overlay_tile_cache.get(&tile_id(overlay)) {
+                    if let Some(cached_overlay_tile) =
+                        overlay_tile_cache.get(&tile_id(overlay_tile))
+                    {
                         draw_transparent_tile(
                             display,
                             cached_overlay_tile,
@@ -298,7 +291,7 @@ where
                         overlay_tile_cache_misses += 1;
                         let mut loaded_tile = LoadedTile::new();
                         let start_time = time::time_us();
-                        load_tile(overlay, &mut loaded_tile, true);
+                        load_tile(overlay_tile, &mut loaded_tile, true);
                         load_time += time::time_us() - start_time;
                         draw_transparent_tile(
                             display,
@@ -306,7 +299,9 @@ where
                             screen_coord,
                             Size::new(32, 32),
                         );
-                        if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
+                        if let Err(_) =
+                            overlay_tile_cache.insert(tile_id(overlay_tile), loaded_tile)
+                        {
                             overlay_tile_cache_insert_failures += 1;
                         }
                     }
@@ -315,18 +310,18 @@ where
                 base_tile_cache_misses += 1;
                 let mut loaded_tile = LoadedTile::new();
                 let start_time = time::time_us();
-                load_tile(map_tile.base, &mut loaded_tile, false);
+                load_tile(base_tile, &mut loaded_tile, false);
                 load_time += time::time_us() - start_time;
                 if (draw_opaque_tile(display, &loaded_tile, screen_coord, Size::new(32, 32))
                     || (screen_x >= 0 && screen_y < 0))
                     && enable_tile_cache
                 {
-                    if let Err(_) = tile_cache.insert(tile_id(map_tile.base), screen_coord) {
+                    if let Err(_) = tile_cache.insert(tile_id(base_tile), screen_coord) {
                         base_tile_cache_insert_failures += 1;
                     }
                 }
-                if let Some(overlay) = map_tile.overlay {
-                    let _ = missing_transparent_tiles.push((screen_coord, overlay));
+                if map_tile.layers.len() > 1 {
+                    let _ = missing_transparent_tiles.push((screen_coord, map_tile));
                 }
             }
         }
@@ -343,24 +338,26 @@ where
     }
 
     let draw_start_time = time::time_us();
-    for (screen_coord, overlay) in missing_transparent_tiles {
-        overlay_tile_cache_lookups += 1;
-        if let Some(cached_overlay_tile) = overlay_tile_cache.get(&tile_id(overlay)) {
-            draw_transparent_tile(
-                display,
-                cached_overlay_tile,
-                screen_coord,
-                Size::new(32, 32),
-            );
-        } else {
-            overlay_tile_cache_misses += 1;
-            let mut loaded_tile = LoadedTile::new();
-            let start_time = time::time_us();
-            load_tile(overlay, &mut loaded_tile, true);
-            load_time += time::time_us() - start_time;
-            draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
-            if let Err(_) = overlay_tile_cache.insert(tile_id(overlay), loaded_tile) {
-                overlay_tile_cache_insert_failures += 1;
+    for (screen_coord, map_tile) in missing_transparent_tiles {
+        for overlay_tile in map_tile.layers[1..].iter() {
+            overlay_tile_cache_lookups += 1;
+            if let Some(cached_overlay_tile) = overlay_tile_cache.get(&tile_id(overlay_tile)) {
+                draw_transparent_tile(
+                    display,
+                    cached_overlay_tile,
+                    screen_coord,
+                    Size::new(32, 32),
+                );
+            } else {
+                overlay_tile_cache_misses += 1;
+                let mut loaded_tile = LoadedTile::new();
+                let start_time = time::time_us();
+                load_tile(overlay_tile, &mut loaded_tile, true);
+                load_time += time::time_us() - start_time;
+                draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
+                if let Err(_) = overlay_tile_cache.insert(tile_id(overlay_tile), loaded_tile) {
+                    overlay_tile_cache_insert_failures += 1;
+                }
             }
         }
     }
@@ -389,7 +386,7 @@ where
     }
 }
 
-fn generate_map(position: Point) -> MapTile {
+fn generate_map(position: Point) -> GenMapTile {
     let map = worldmap();
 
     let ocean_tiles = [
@@ -418,32 +415,22 @@ fn generate_map(position: Point) -> MapTile {
     let hash = hasher.finish();
     let map_x = position.x / TILE_SIZE;
     let map_y = position.y / TILE_SIZE;
-    let base_tile =
-        if (0..(MAP_SIZE as i32)).contains(&map_x) && (0..(MAP_SIZE as i32)).contains(&map_y) {
-            let index = (map_x + map_y * MAP_SIZE as i32) as usize;
-            let tile_index = map.base_tile_indices[index];
-            map.tile_functions[tile_index as usize]()
-        } else {
-            ocean_tiles[hash as usize % ocean_tiles.len()]
-        };
+    let mut layers = heapless::Vec::new();
 
-    let overlay_tile =
-        if (0..(MAP_SIZE as i32)).contains(&map_x) && (0..(MAP_SIZE as i32)).contains(&map_y) {
-            let index = (map_x + map_y * MAP_SIZE as i32) as usize;
-            let tile_index = map.overlay_tile_indices[index];
-            if tile_index as usize >= map.tile_functions.len() {
-                None
-            } else {
-                Some(map.tile_functions[tile_index as usize]())
+    if (0..(MAP_SIZE as i32)).contains(&map_x) && (0..(MAP_SIZE as i32)).contains(&map_y) {
+        let index = (map_x + map_y * MAP_SIZE as i32) as usize;
+        for tile_index in map.tiles[index].layers {
+            if tile_index != INVALID_TILE {
+                let _ = layers.push(map.tile_functions[tile_index as usize]());
             }
-        } else {
-            None
-        };
-
-    MapTile {
-        base: base_tile,
-        overlay: overlay_tile,
+        }
     }
+
+    if layers.is_empty() {
+        let _ = layers.push(ocean_tiles[hash as usize % ocean_tiles.len()]);
+    }
+
+    GenMapTile { layers }
 }
 
 #[entry]
