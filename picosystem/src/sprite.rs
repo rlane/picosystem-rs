@@ -43,15 +43,34 @@ impl ImageDrawable for Sprite<'_> {
     where
         D: DrawTarget<Color = Self::Color>,
     {
-        // TODO transparency
-        for (iy, y) in (area.top_left.y..(area.top_left.y + area.size.height as i32)).enumerate() {
-            let start_index = area.top_left.x as usize + (y * self.size.width as i32) as usize;
-            let end_index = start_index + area.size.width as usize;
-            let slice = &self.data[start_index..end_index];
-            target.fill_contiguous(
-                &Rectangle::new(Point::new(0, iy as i32), Size::new(area.size.width, 1)),
-                slice.iter().map(|c| RawU16::new(*c).into()),
-            )?;
+        if let Some(transparent_color) = self.transparent_color {
+            for (iy, y) in
+                (area.top_left.y..(area.top_left.y + area.size.height as i32)).enumerate()
+            {
+                let start_index = area.top_left.x as usize + (y * self.size.width as i32) as usize;
+                let end_index = start_index + area.size.width as usize;
+                for (x, p) in (&self.data[start_index..end_index]).iter().enumerate() {
+                    if *p != transparent_color {
+                        let pixels = [Pixel(
+                            Point::new(x as i32, iy as i32),
+                            RawU16::new(*p).into(),
+                        )];
+                        target.draw_iter(pixels.iter().cloned())?;
+                    }
+                }
+            }
+        } else {
+            for (iy, y) in
+                (area.top_left.y..(area.top_left.y + area.size.height as i32)).enumerate()
+            {
+                let start_index = area.top_left.x as usize + (y * self.size.width as i32) as usize;
+                let end_index = start_index + area.size.width as usize;
+                let slice = &self.data[start_index..end_index];
+                target.fill_contiguous(
+                    &Rectangle::new(Point::new(0, iy as i32), Size::new(area.size.width, 1)),
+                    slice.iter().map(|c| RawU16::new(*c).into()),
+                )?;
+            }
         }
         Ok(())
     }
