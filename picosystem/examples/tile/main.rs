@@ -2,6 +2,7 @@
 #![no_main]
 
 use cortex_m_rt::entry;
+use embedded_graphics::image::Image;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use log::info;
@@ -12,12 +13,22 @@ use picosystem::hardware;
 use picosystem::map::{Map, MapTile, INVALID_TILE, MAP_SIZE, NUM_LAYERS};
 use picosystem::tile::{Tile, TILE_SIZE};
 use picosystem::time;
-use picosystem_macros::{atlas, map};
+use picosystem_macros::{atlas, map, sprite};
 
 atlas!(atlas, "picosystem/examples/tile/terrain_atlas.png", 32);
 
+sprite!(protagonist, "picosystem/examples/tile/lidia.png", 576);
+
 const _: &[u8] = include_bytes!("map.tmx");
 map!(worldmap, "picosystem/examples/tile/map.tmx");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Direction {
+    North,
+    South,
+    East,
+    West,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct TileId(u32);
@@ -446,24 +457,56 @@ fn main() -> ! {
 
     let mut position = Point::new((100 * 32 - 240) / 2, (100 * 32 - 240) / 2);
     let mut frame = 0;
+    let mut walk_frame = 0;
+    let mut player_direction = Direction::North;
     loop {
-        let speed = 8;
+        let speed = 2;
         if hw.input.dpad_left.is_held() {
             position.x -= speed;
-        }
-        if hw.input.dpad_right.is_held() {
+            player_direction = Direction::West;
+            walk_frame += 1;
+        } else if hw.input.dpad_right.is_held() {
             position.x += speed;
-        }
-        if hw.input.dpad_up.is_held() {
+            player_direction = Direction::East;
+            walk_frame += 1;
+        } else if hw.input.dpad_up.is_held() {
             position.y -= speed;
-        }
-        if hw.input.dpad_down.is_held() {
+            player_direction = Direction::North;
+            walk_frame += 1;
+        } else if hw.input.dpad_down.is_held() {
             position.y += speed;
+            player_direction = Direction::South;
+            walk_frame += 1;
+        } else {
+            walk_frame = 0;
         }
 
         draw_tiles(&mut hw.display, position, &generate_map, frame % 60 == 0);
 
-        hw.draw(|_display| {});
+        hw.draw(|display| {
+            let s: u32 = 64;
+            let player_atlas = protagonist();
+            let walk_anim = if walk_frame == 0 {
+                0
+            } else {
+                1 + (walk_frame / 3) % 8
+            };
+            let atlas_coord = match player_direction {
+                Direction::North => Point::new(0, 0),
+                Direction::East => Point::new(0, 3 * s as i32),
+                Direction::South => Point::new(0, 2 * s as i32),
+                Direction::West => Point::new(0, s as i32),
+            } + Point::new(walk_anim * s as i32, 0);
+            let player_sprite =
+                player_atlas.sub_image(&Rectangle::new(atlas_coord, Size::new(s, s)));
+            Image::new(&player_sprite, Point::new(0, 0))
+                .translate(Point::new(
+                    (WIDTH as i32 - s as i32) / 2,
+                    (HEIGHT as i32 - s as i32) / 2,
+                ))
+                .draw(display)
+                .unwrap();
+        });
 
         fps_monitor.update();
         frame += 1;
