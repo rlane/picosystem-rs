@@ -3,6 +3,10 @@ use rp2040_pac::dma::ch::ch_ctrl_trig::W as CtrlWriter;
 use rp2040_pac::dma::CH;
 use rp2040_pac::generic::W;
 
+pub const CHANNEL_FRAMEBUFFER: usize = 0;
+pub const CHANNEL_TILE0: usize = 1;
+pub const CHANNEL_TILE1: usize = 2;
+
 pub struct DmaChannel {
     pub channel: usize,
     pub ch: &'static CH,

@@ -46,7 +46,7 @@ mod device {
         assert_eq!(src.data.len() % 2, 0);
         assert_eq!(src.data.len() < buf.len(), true);
         unsafe {
-            let mut dma_channel = dma::DmaChannel::new(1);
+            let mut dma_channel = dma::DmaChannel::new(dma::CHANNEL_TILE0);
             dma::copy_flash_to_mem(
                 &mut dma_channel,
                 src.data.as_ptr() as u32,
@@ -67,8 +67,8 @@ mod device {
 
     pub fn decompress_dma(input: &[u16], output: &mut [u16]) {
         unsafe {
-            let mut dma_channel0 = dma::DmaChannel::new(1);
-            let mut dma_channel1 = dma::DmaChannel::new(2);
+            let mut dma_channel0 = dma::DmaChannel::new(dma::CHANNEL_TILE0);
+            let mut dma_channel1 = dma::DmaChannel::new(dma::CHANNEL_TILE1);
             let mut src_ptr: *const u16 = input.as_ptr().add(1);
             let end_ptr = input.as_ptr().add(input.len());
             let mut dst_ptr: *mut u16 = output.as_mut_ptr();
@@ -115,7 +115,7 @@ mod device {
 
     fn draw_opaque_tile(display: &mut Display, tile: &LoadedTile, dst: Point, size: Size) -> bool {
         let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
-        let mut dma_channel = unsafe { dma::DmaChannel::new(1) };
+        let mut dma_channel = unsafe { dma::DmaChannel::new(dma::CHANNEL_TILE0) };
 
         let src = clipped_dst.top_left - dst;
         let dst = clipped_dst.top_left;
@@ -156,7 +156,7 @@ mod device {
         let dst = clipped_dst.top_left;
 
         unsafe {
-            let mut dma_channel = dma::DmaChannel::new(1);
+            let mut dma_channel = dma::DmaChannel::new(dma::CHANNEL_TILE0);
             let mut src_ptr: *const u16 = tile.data.as_ptr();
             let mut dst_ptr: *mut u16 = framebuffer().as_mut_ptr();
             let mut mask_ptr: *const u32 = tile.mask.as_ptr().add(src.y as usize);
@@ -207,7 +207,7 @@ mod device {
 
     fn copy_tile(display: &mut Display, src: Point, dst: Point, size: Size) {
         let clipped_dst = Rectangle::new(dst, size).intersection(&display.bounding_box());
-        let mut dma_channel = unsafe { dma::DmaChannel::new(2) };
+        let mut dma_channel = unsafe { dma::DmaChannel::new(dma::CHANNEL_TILE1) };
         let fb_data = framebuffer();
 
         let src = src + clipped_dst.top_left - dst;
