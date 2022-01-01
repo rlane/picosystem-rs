@@ -23,6 +23,7 @@ pub struct LoadedTile {
     pub mask: [u32; TILE_SIZE as usize],
 }
 
+#[allow(clippy::new_without_default)]
 impl LoadedTile {
     pub fn new() -> Self {
         LoadedTile {
@@ -44,7 +45,7 @@ mod device {
     fn load_tile(src: &Tile, dst: &mut LoadedTile, masked: bool) {
         let mut buf = [0u16; (2 * TILE_SIZE * TILE_SIZE + 1) as usize];
         assert_eq!(src.data.len() % 2, 0);
-        assert_eq!(src.data.len() < buf.len(), true);
+        assert!(src.data.len() < buf.len());
         unsafe {
             let mut dma_channel = dma::DmaChannel::new(dma::CHANNEL_TILE0);
             dma::copy_flash_to_mem(
@@ -301,8 +302,9 @@ mod device {
                                 screen_coord,
                                 Size::new(32, 32),
                             );
-                            if let Err(_) =
-                                overlay_tile_cache.insert(tile_id(overlay_tile), loaded_tile)
+                            if overlay_tile_cache
+                                .insert(tile_id(overlay_tile), loaded_tile)
+                                .is_err()
                             {
                                 overlay_tile_cache_insert_failures += 1;
                             }
@@ -317,10 +319,9 @@ mod device {
                     if (draw_opaque_tile(display, &loaded_tile, screen_coord, Size::new(32, 32))
                         || (screen_x >= 0 && screen_y < 0))
                         && enable_tile_cache
+                        && tile_cache.insert(tile_id(base_tile), screen_coord).is_err()
                     {
-                        if let Err(_) = tile_cache.insert(tile_id(base_tile), screen_coord) {
-                            base_tile_cache_insert_failures += 1;
-                        }
+                        base_tile_cache_insert_failures += 1;
                     }
                     if map_tile.layers.len() > 1 {
                         let _ = missing_transparent_tiles.push((screen_coord, map_tile));
@@ -357,7 +358,10 @@ mod device {
                     load_tile(overlay_tile, &mut loaded_tile, true);
                     load_time += time::time_us() - start_time;
                     draw_transparent_tile(display, &loaded_tile, screen_coord, Size::new(32, 32));
-                    if let Err(_) = overlay_tile_cache.insert(tile_id(overlay_tile), loaded_tile) {
+                    if overlay_tile_cache
+                        .insert(tile_id(overlay_tile), loaded_tile)
+                        .is_err()
+                    {
                         overlay_tile_cache_insert_failures += 1;
                     }
                 }

@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use rp2040_pac::dma::ch::ch_ctrl_trig::CH_CTRL_TRIG_SPEC as CtrlReg;
 use rp2040_pac::dma::ch::ch_ctrl_trig::W as CtrlWriter;
 use rp2040_pac::dma::CH;
@@ -12,7 +14,6 @@ pub struct DmaChannel {
     pub ch: &'static CH,
 }
 
-#[allow(clippy::missing_safety_doc)]
 impl DmaChannel {
     pub unsafe fn new(channel: usize) -> Self {
         DmaChannel {
