@@ -1,4 +1,4 @@
-use picosystem::map::{MapTile, INVALID_TILE, MAP_SIZE, NUM_LAYERS};
+use picosystem::map::{MapTile, INVALID_TILE, NUM_LAYERS};
 use picosystem::tile::TILE_SIZE;
 use proc_macro::TokenStream;
 use std::collections::HashSet;
@@ -31,8 +31,6 @@ pub fn map(input: TokenStream) -> TokenStream {
 
     let map = tiled::parse_file(&Path::new(&path.value())).unwrap();
 
-    assert_eq!(map.width, MAP_SIZE as u32);
-    assert_eq!(map.height, MAP_SIZE as u32);
     assert_eq!(map.tile_width, TILE_SIZE as u32);
     assert_eq!(map.tile_height, TILE_SIZE as u32);
     assert_eq!(map.tilesets.len(), 1);
@@ -84,12 +82,14 @@ pub fn map(input: TokenStream) -> TokenStream {
         r"
         pub fn {}() -> &'static Map {{
             static MAP: Map = Map {{
-                tiles: {:?},
+                width: {},
+                height: {},
+                tiles: &{:?},
                 tile_functions: [{}],
             }};
             &MAP
         }}",
-        &function_name, &tiles, &tile_functions_code
+        &function_name, map.width, map.height, &tiles, &tile_functions_code
     ));
     code.parse().unwrap()
 }

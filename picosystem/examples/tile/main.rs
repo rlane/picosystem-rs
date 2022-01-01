@@ -9,7 +9,7 @@ use log::info;
 use picosystem::display::{HEIGHT, WIDTH};
 use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
-use picosystem::map::{Map, MapTile, INVALID_TILE, MAP_SIZE};
+use picosystem::map::{Map, MapTile, INVALID_TILE};
 use picosystem::tile::{self, GenMapTile, TILE_SIZE};
 use picosystem_macros::{atlas, map, sprite};
 
@@ -59,8 +59,8 @@ fn generate_map(position: Point) -> GenMapTile {
     let map_y = position.y / TILE_SIZE;
     let mut layers = heapless::Vec::new();
 
-    if (0..(MAP_SIZE as i32)).contains(&map_x) && (0..(MAP_SIZE as i32)).contains(&map_y) {
-        let index = (map_x + map_y * MAP_SIZE as i32) as usize;
+    if (0..(map.width as i32)).contains(&map_x) && (0..(map.height as i32)).contains(&map_y) {
+        let index = (map_x + map_y * map.width as i32) as usize;
         for tile_index in map.tiles[index].layers {
             if tile_index != INVALID_TILE {
                 let _ = layers.push(map.tile_functions[tile_index as usize]());
