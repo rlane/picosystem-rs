@@ -104,7 +104,7 @@ impl Hardware {
             /*spi_device=*/ pac.SPI0,
             /*resets=*/ &mut pac.RESETS,
             /*delay_source=*/ &mut delay,
-            /*dma_channel=*/ unsafe { dma::DmaChannel::new(0) },
+            /*dma_channel=*/ unsafe { dma::DmaChannel::new(dma::CHANNEL_FRAMEBUFFER) },
         );
 
         pac.RESETS.reset.modify(|_, w| w.dma().clear_bit());

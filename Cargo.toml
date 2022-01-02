@@ -5,11 +5,13 @@ resolver = "2"
 members = [
     "picosystem",
     "games",
+    "compressor",
 ]
 exclude = ["picosystem_macros"]
 
 [patch.crates-io]
 rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }
+rp2040-boot2 = { git = "https://github.com/rlane/rp2040-boot2.git", branch="clkdiv" }
 
 # cargo build/run
 [profile.dev]
