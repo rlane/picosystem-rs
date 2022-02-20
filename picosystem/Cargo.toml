@@ -13,7 +13,7 @@ cortex-m = "0.7"
 cortex-m-rt = "0.7"
 embedded-hal = "0.2"
 embedded-time = "0.12"
-pico = { git = "https://github.com/rp-rs/rp-hal.git", branch="main" }
+rp-pico = { git = "https://github.com/rp-rs/rp-hal.git", branch="main" }
 rp2040-boot2 = { git = "https://github.com/rp-rs/rp2040-boot2-rs", branch="main" }
 rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", branch="main", features=["rt"] }
 rp2040-pac = { git = "https://github.com/rp-rs/rp2040-pac.git" }

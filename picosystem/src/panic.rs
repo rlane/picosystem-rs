@@ -1,6 +1,6 @@
 use core::panic::PanicInfo;
 use cortex_m_rt::{exception, ExceptionFrame};
-use pico::hal::pac;
+use rp_pico::hal::pac;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

@@ -4,9 +4,9 @@ use core::fmt;
 use core::fmt::Write;
 use log::LevelFilter;
 use log::{Level, Metadata, Record};
-use pico::hal;
-use pico::hal::pac;
-use pico::hal::pac::interrupt;
+use rp_pico::hal;
+use rp_pico::hal::pac;
+use rp_pico::hal::pac::interrupt;
 use usb_device::{class_prelude::*, device::UsbDeviceState, prelude::*};
 use usbd_serial::SerialPort;
 

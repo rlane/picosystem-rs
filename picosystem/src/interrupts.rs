@@ -1,5 +1,5 @@
-use pico::hal::pac;
-use pico::hal::pac::interrupt;
+use rp_pico::hal::pac;
+use rp_pico::hal::pac::interrupt;
 
 pub enum GpioEvent {
     Low = 1,

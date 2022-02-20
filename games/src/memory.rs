@@ -12,8 +12,8 @@ struct Item {
     word: &'static str,
 }
 
-const GRID_WIDTH: i32 = 3;
-const GRID_HEIGHT: i32 = 3;
+const GRID_WIDTH: i32 = 4;
+const GRID_HEIGHT: i32 = 4;
 const NUM_CELLS: i32 = GRID_WIDTH * GRID_HEIGHT;
 const CELL_WIDTH: i32 = WIDTH as i32 / GRID_WIDTH - 10;
 const CELL_HEIGHT: i32 = CELL_WIDTH;
