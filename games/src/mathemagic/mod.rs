@@ -1,7 +1,3 @@
-#![no_std]
-#![no_main]
-
-use cortex_m_rt::entry;
 use embedded_graphics::image::Image;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
@@ -13,12 +9,12 @@ use picosystem::map::{Map, MapTile, INVALID_TILE};
 use picosystem::tile::{self, GenMapTile, TILE_SIZE};
 use picosystem_macros::{atlas, map, sprite};
 
-atlas!(atlas, "picosystem/examples/tile/terrain_atlas.png", 32);
+atlas!(atlas, "games/src/mathemagic/terrain_atlas.png", 32);
 
-sprite!(protagonist, "picosystem/examples/tile/lidia.png", 576);
+sprite!(protagonist, "games/src/mathemagic/lidia.png", 576);
 
 const _: &[u8] = include_bytes!("map.tmx");
-map!(worldmap, "picosystem/examples/tile/map.tmx");
+map!(worldmap, "games/src/mathemagic/map.tmx");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
@@ -75,10 +71,7 @@ fn generate_map(position: Point) -> GenMapTile {
     GenMapTile { layers }
 }
 
-#[entry]
-fn main() -> ! {
-    let mut hw = hardware::Hardware::new();
-    info!("Finished initialization");
+pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut fps_monitor = FpsMonitor::new();
 
     unsafe {

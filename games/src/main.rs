@@ -6,6 +6,7 @@ mod draw;
 mod hangman;
 mod invaders;
 mod life;
+mod mathemagic;
 mod maze;
 mod memory;
 mod system;
@@ -82,6 +83,10 @@ fn main() -> ! {
         MenuItem {
             name: "memory",
             main: memory::main,
+        },
+        MenuItem {
+            name: "mathemagic",
+            main: mathemagic::main,
         },
     ];
 

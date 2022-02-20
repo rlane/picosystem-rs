@@ -31,4 +31,3 @@ picosystem_compressor = { path = "../compressor" }
 
 [dev-dependencies]
 picosystem_macros = { path = "../picosystem_macros" }
-hash32 = "0.2"
