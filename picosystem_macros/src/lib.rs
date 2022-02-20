@@ -61,16 +61,18 @@ pub fn sprite(input: TokenStream) -> TokenStream {
 
     let mut code = String::new();
     code.push_str(&format!(
-        r"
+        r#"
         pub fn {}() -> &'static picosystem::sprite::Sprite<'static> {{
+            #[link_section = ".static_rodata"]
             static DATA: [u16; {}] = {:?};
+            #[link_section = ".static_rodata"]
             static SPRITE: picosystem::sprite::Sprite<'static> = picosystem::sprite::Sprite {{
                 size: embedded_graphics::geometry::Size::new({}, {}),
                 transparent_color: {:?},
                 data: &DATA
             }};
             &SPRITE
-        }}",
+        }}"#,
         &function_name,
         data.len(),
         &data,

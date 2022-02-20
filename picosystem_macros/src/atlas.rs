@@ -85,17 +85,20 @@ pub fn atlas(input: TokenStream) -> TokenStream {
             }
 
             code.push_str(&format!(
-                r"
+                r#"
         pub fn {}{}() -> &'static picosystem::tile::Tile {{
             static COMPRESSION_RATIO: u32 = {};
+            #[link_section = ".static_rodata"]
             static DATA: [u16; {}] = {:?};
+            #[link_section = ".static_rodata"]
             static MASK: [u32; {}] = {:?};
+            #[link_section = ".static_rodata"]
             static TILE: picosystem::tile::Tile = picosystem::tile::Tile {{
                 data: &DATA,
                 mask: &MASK,
             }};
             &TILE
-        }}",
+        }}"#,
                 &function_name,
                 tile_index,
                 (100.0 * compressed_length as f64 / data.len() as f64) as u32,
