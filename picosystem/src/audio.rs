@@ -1,8 +1,8 @@
 use embedded_hal::digital::v2::OutputPin;
 use embedded_hal::digital::v2::ToggleableOutputPin;
-use pico::hal;
-use pico::hal::pac;
-use pico::hal::pac::interrupt;
+use rp_pico::hal;
+use rp_pico::hal::pac;
+use rp_pico::hal::pac::interrupt;
 use rp2040_hal::gpio::dynpin::DynPin;
 
 pub struct Audio;

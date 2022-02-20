@@ -82,7 +82,7 @@ fn main() -> ! {
     let mut fps_monitor = FpsMonitor::new();
 
     unsafe {
-        let regs = &*pico::pac::XIP_SSI::PTR;
+        let regs = &*rp_pico::pac::XIP_SSI::PTR;
         info!("Flash clock divider: {}", regs.baudr.read().bits());
     }
 

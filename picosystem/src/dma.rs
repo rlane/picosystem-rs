@@ -168,7 +168,7 @@ pub unsafe fn copy_mem_bswap(
 
 pub unsafe fn copy_flash_to_mem(dma_channel: &mut DmaChannel, src: u32, dst: u32, count: u32) {
     // Flush XIP FIFO.
-    let xip_ctrl = &*pico::pac::XIP_CTRL::PTR;
+    let xip_ctrl = &*rp_pico::pac::XIP_CTRL::PTR;
     while xip_ctrl.stat.read().fifo_empty().bit_is_clear() {
         log::info!("XIP FIFO not empty");
         cortex_m::asm::nop();

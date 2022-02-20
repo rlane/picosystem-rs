@@ -3,12 +3,12 @@ use crate::{audio, dma, idle, input, usb_logger};
 use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::rate::*;
-use pico::hal;
-use pico::hal::pac;
 use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::pin::bank0::Gpio26;
 use rp2040_hal::gpio::pin::{FloatingInput, Pin};
 use rp2040_hal::gpio::Pins;
+use rp_pico::hal;
+use rp_pico::hal::pac;
 
 use rp2040_hal::{
     clocks::{Clock, ClocksManager, InitError},
@@ -39,7 +39,7 @@ impl Hardware {
 
         // The default is to generate a 125 MHz system clock
         let clocks = Self::init_clocks_and_plls(
-            pico::XOSC_CRYSTAL_FREQ,
+            rp_pico::XOSC_CRYSTAL_FREQ,
             pac.XOSC,
             pac.CLOCKS,
             pac.PLL_SYS,
