@@ -81,6 +81,7 @@ fn generate_map(position: Point) -> GenMapTile {
     GenMapTile { layers }
 }
 
+#[derive(Debug)]
 struct Monster {
     position: Point,
     direction: Direction,
@@ -156,12 +157,24 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut frame = 0;
     let mut walk_frame = 0;
     let mut player_direction = Direction::North;
-    let mut slime = Monster {
-        position: position + Point::new(64, 32),
-        direction: Direction::South,
-        velocity: Point::new(0, 0),
-        move_frames_remaining: 0,
-    };
+
+    let mut slimes: heapless::Vec<Monster, 8> = heapless::Vec::new();
+    for _ in 0..8 {
+        slimes
+            .push(Monster {
+                position: position
+                    + Point::new(240 / 2, 240 / 2)
+                    + Point::new(
+                        rng.rand_range(0..400) as i32 - 200,
+                        rng.rand_range(0..400) as i32 - 200,
+                    ),
+                direction: Direction::South,
+                velocity: Point::new(0, 0),
+                move_frames_remaining: rng.rand_range(0..120) as i32,
+            })
+            .unwrap();
+    }
+
     loop {
         let speed = 2;
         if hw.input.dpad_left.is_held() {
@@ -184,7 +197,9 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             walk_frame = 0;
         }
 
-        move_slime(&mut slime, &mut rng);
+        for slime in slimes.iter_mut() {
+            move_slime(slime, &mut rng);
+        }
 
         tile::draw(&mut hw.display, position, &generate_map, frame % 60 == 0);
 
@@ -212,7 +227,9 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 .draw(display)
                 .unwrap();
 
-            draw_slime(&slime, display, position);
+            for slime in slimes.iter() {
+                draw_slime(&slime, display, position);
+            }
         });
 
         fps_monitor.update();
