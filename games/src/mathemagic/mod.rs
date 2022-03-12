@@ -107,16 +107,13 @@ fn move_slime(slime: &mut Monster, rng: &mut oorandom::Rand32) {
         };
     }
 
-    let do_move = match (
-        slime.move_frames_remaining / SLIME_FRAME_LENGTH % 4,
-        slime.move_frames_remaining % 7,
-    ) {
-        (1, 0) => true,
-        (3, 0) => true,
-        (2, 0) => true,
-        (2, 3) => true,
-        _ => false,
-    };
+    let do_move = matches!(
+        (
+            slime.move_frames_remaining / SLIME_FRAME_LENGTH % 4,
+            slime.move_frames_remaining % 7,
+        ),
+        (1, 0) | (3, 0) | (2, 0) | (2, 3)
+    );
     if do_move {
         slime.position += slime.velocity;
     }
@@ -228,7 +225,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
                 .unwrap();
 
             for slime in slimes.iter() {
-                draw_slime(&slime, display, position);
+                draw_slime(slime, display, position);
             }
         });
 
