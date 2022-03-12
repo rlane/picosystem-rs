@@ -1,24 +1,28 @@
-#![no_std]
-#![no_main]
-
-use cortex_m_rt::entry;
 use embedded_graphics::image::Image;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use log::info;
-use picosystem::display::{HEIGHT, WIDTH};
+use picosystem::display::{Display, HEIGHT, WIDTH};
 use picosystem::fps_monitor::FpsMonitor;
 use picosystem::hardware;
 use picosystem::map::{Map, MapTile, INVALID_TILE};
 use picosystem::tile::{self, GenMapTile, TILE_SIZE};
+use picosystem::time;
 use picosystem_macros::{atlas, map, sprite};
 
-atlas!(atlas, "picosystem/examples/tile/terrain_atlas.png", 32);
+atlas!(atlas, "games/src/mathemagic/terrain_atlas.png", 32);
 
-sprite!(protagonist, "picosystem/examples/tile/lidia.png", 576);
+sprite!(protagonist, "games/src/mathemagic/lidia.png", 576);
+
+const _: &[u8] = include_bytes!("../../assets/slime/slime_monster_spritesheet.png");
+sprite!(
+    slime_atlas,
+    "games/assets/slime/slime_monster_spritesheet.png",
+    72
+);
 
 const _: &[u8] = include_bytes!("map.tmx");
-map!(worldmap, "picosystem/examples/tile/map.tmx");
+map!(worldmap, "games/src/mathemagic/map.tmx");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
@@ -27,6 +31,8 @@ enum Direction {
     East,
     West,
 }
+
+const SLIME_FRAME_LENGTH: i32 = 30;
 
 fn generate_map(position: Point) -> GenMapTile {
     let map = worldmap();
@@ -75,11 +81,69 @@ fn generate_map(position: Point) -> GenMapTile {
     GenMapTile { layers }
 }
 
-#[entry]
-fn main() -> ! {
-    let mut hw = hardware::Hardware::new();
-    info!("Finished initialization");
+#[derive(Debug)]
+struct Monster {
+    position: Point,
+    direction: Direction,
+    velocity: Point,
+    move_frames_remaining: i32,
+}
+
+fn move_slime(slime: &mut Monster, rng: &mut oorandom::Rand32) {
+    if slime.move_frames_remaining == 0 {
+        let speed = 1;
+        slime.direction = match rng.rand_range(0..4) {
+            0 => Direction::North,
+            1 => Direction::South,
+            2 => Direction::East,
+            _ => Direction::West,
+        };
+        slime.move_frames_remaining = SLIME_FRAME_LENGTH * 4;
+        slime.velocity = match slime.direction {
+            Direction::North => Point::new(0, -speed),
+            Direction::South => Point::new(0, speed),
+            Direction::East => Point::new(speed, 0),
+            Direction::West => Point::new(-speed, 0),
+        };
+    }
+
+    let do_move = matches!(
+        (
+            slime.move_frames_remaining / SLIME_FRAME_LENGTH % 4,
+            slime.move_frames_remaining % 7,
+        ),
+        (1, 0) | (3, 0) | (2, 0) | (2, 3)
+    );
+    if do_move {
+        slime.position += slime.velocity;
+    }
+
+    slime.move_frames_remaining -= 1;
+}
+
+fn draw_slime(slime: &Monster, display: &mut Display, player_position: Point) {
+    let s: u32 = 24;
+    let mut anim_frame = slime.move_frames_remaining / SLIME_FRAME_LENGTH % 4;
+    if anim_frame == 3 {
+        anim_frame = 1;
+    }
+    let atlas_y = match slime.direction {
+        Direction::North => 0,
+        Direction::East => s as i32,
+        Direction::South => 2 * s as i32,
+        Direction::West => 3 * s as i32,
+    };
+    let atlas_coord = Point::new(anim_frame * 24, atlas_y);
+    let slime_sprite = slime_atlas().sub_image(&Rectangle::new(atlas_coord, Size::new(s, s)));
+    Image::new(&slime_sprite, Point::new(0, 0))
+        .translate(slime.position - player_position - Point::new(s as i32, s as i32) / 2)
+        .draw(display)
+        .unwrap();
+}
+
+pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut fps_monitor = FpsMonitor::new();
+    let mut rng = oorandom::Rand32::new(time::time_us() as u64);
 
     unsafe {
         let regs = &*rp_pico::pac::XIP_SSI::PTR;
@@ -90,6 +154,24 @@ fn main() -> ! {
     let mut frame = 0;
     let mut walk_frame = 0;
     let mut player_direction = Direction::North;
+
+    let mut slimes: heapless::Vec<Monster, 8> = heapless::Vec::new();
+    for _ in 0..8 {
+        slimes
+            .push(Monster {
+                position: position
+                    + Point::new(240 / 2, 240 / 2)
+                    + Point::new(
+                        rng.rand_range(0..400) as i32 - 200,
+                        rng.rand_range(0..400) as i32 - 200,
+                    ),
+                direction: Direction::South,
+                velocity: Point::new(0, 0),
+                move_frames_remaining: rng.rand_range(0..120) as i32,
+            })
+            .unwrap();
+    }
+
     loop {
         let speed = 2;
         if hw.input.dpad_left.is_held() {
@@ -110,6 +192,10 @@ fn main() -> ! {
             walk_frame += 1;
         } else {
             walk_frame = 0;
+        }
+
+        for slime in slimes.iter_mut() {
+            move_slime(slime, &mut rng);
         }
 
         tile::draw(&mut hw.display, position, &generate_map, frame % 60 == 0);
@@ -137,6 +223,10 @@ fn main() -> ! {
                 ))
                 .draw(display)
                 .unwrap();
+
+            for slime in slimes.iter() {
+                draw_slime(slime, display, position);
+            }
         });
 
         fps_monitor.update();
