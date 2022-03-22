@@ -29,25 +29,30 @@ pub fn map(input: TokenStream) -> TokenStream {
         path,
     } = parse_macro_input!(input as MapArgs);
 
-    let map = tiled::parse_file(&Path::new(&path.value())).unwrap();
+    let map = tiled::Map::parse_file(
+        &Path::new(&path.value()),
+        &mut tiled::FilesystemResourceCache::new(),
+    )
+    .expect("Failed to parse map");
 
     assert_eq!(map.tile_width, TILE_SIZE as u32);
     assert_eq!(map.tile_height, TILE_SIZE as u32);
-    assert_eq!(map.tilesets.len(), 1);
-    assert_eq!(map.layers.len() <= NUM_LAYERS, true);
-    assert_eq!(map.infinite, false);
+    assert_eq!(map.tilesets().len(), 1);
+    assert_eq!(map.layers().len() <= NUM_LAYERS, true);
+    assert_eq!(map.infinite(), false);
 
     let mut tile_index_layers = Vec::<Vec<u16>>::new();
     let mut used_tile_functions: HashSet<u16> = HashSet::new();
-    for layer in map.layers.iter() {
+    for layer in map.layers() {
         let mut tile_index_layer = Vec::<u16>::new();
-        if let tiled::LayerData::Finite(rows) = &layer.tiles {
-            for row in rows {
-                for tile in row {
-                    let tile_index = if tile.gid == 0 {
-                        INVALID_TILE
-                    } else {
-                        (tile.gid - 1) as u16
+        if let tiled::LayerType::TileLayer(tiled::TileLayer::Finite(tile_layer)) =
+            &layer.layer_type()
+        {
+            for y in 0..tile_layer.height() {
+                for x in 0..tile_layer.width() {
+                    let tile_index = match tile_layer.get_tile(x as i32, y as i32) {
+                        Some(tile) => tile.id() as u16,
+                        None => INVALID_TILE,
                     };
                     tile_index_layer.push(tile_index);
                     used_tile_functions.insert(tile_index);
@@ -91,5 +96,5 @@ pub fn map(input: TokenStream) -> TokenStream {
         }}",
         &function_name, map.width, map.height, &tiles, &tile_functions_code
     ));
-    code.parse().unwrap()
+    code.parse().expect("Failed to parse code")
 }
