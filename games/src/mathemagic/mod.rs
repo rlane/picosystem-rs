@@ -14,14 +14,12 @@ atlas!(atlas, "games/src/mathemagic/terrain_atlas.png", 32);
 
 sprite!(protagonist, "games/src/mathemagic/lidia.png", 576);
 
-const _: &[u8] = include_bytes!("../../assets/slime/slime_monster_spritesheet.png");
 sprite!(
     slime_atlas,
     "games/assets/slime/slime_monster_spritesheet.png",
     72
 );
 
-const _: &[u8] = include_bytes!("map.tmx");
 map!(worldmap, "games/src/mathemagic/map.tmx");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

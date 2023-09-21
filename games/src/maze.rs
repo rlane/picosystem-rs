@@ -22,7 +22,7 @@ fn draw_cell(display: &mut display::Display, point: Point, cell: Cell, inner_col
     let ne = nw + Point::new(MAZE_SCALE, 0);
     let sw = nw + Point::new(0, MAZE_SCALE);
     Rectangle::new(
-        nw + Point::new(MAZE_SCALE as i32 / 4, MAZE_SCALE as i32 / 4),
+        nw + Point::new(MAZE_SCALE / 4, MAZE_SCALE / 4),
         Size::new(MAZE_SCALE as u32 / 2, MAZE_SCALE as u32 / 2),
     )
     .into_styled(PrimitiveStyleBuilder::new().fill_color(inner_color).build())

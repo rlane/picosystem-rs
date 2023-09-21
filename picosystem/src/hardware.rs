@@ -2,13 +2,13 @@ use crate::display::Display;
 use crate::{audio, dma, idle, input, usb_logger};
 use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
-use embedded_time::rate::*;
 use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::pin::bank0::Gpio26;
 use rp2040_hal::gpio::pin::{FloatingInput, Pin};
 use rp2040_hal::gpio::Pins;
 use rp_pico::hal;
 use rp_pico::hal::pac;
+use fugit::RateExtU32;
 
 use rp2040_hal::{
     clocks::{Clock, ClocksManager, InitError},
@@ -51,7 +51,7 @@ impl Hardware {
         .unwrap();
 
         let mut delay =
-            cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
+            cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
         usb_logger::init(
             pac.USBCTRL_REGS,
@@ -155,8 +155,8 @@ impl Hardware {
 
         let mut clocks = ClocksManager::new(clocks_dev);
 
-        const PLL_SYS_180MHZ: PLLConfig<Megahertz> = PLLConfig {
-            vco_freq: Megahertz(716),
+        let pll_sys_180mhz: PLLConfig = PLLConfig {
+            vco_freq: 716.MHz(),
             refdiv: 1,
             post_div1: 4,
             post_div2: 1,
@@ -164,15 +164,15 @@ impl Hardware {
 
         let pll_sys = setup_pll_blocking(
             pll_sys_dev,
-            xosc.operating_frequency().into(),
-            PLL_SYS_180MHZ,
+            xosc.operating_frequency(),
+            pll_sys_180mhz,
             &mut clocks,
             resets,
         )
         .map_err(InitError::PllError)?;
         let pll_usb = setup_pll_blocking(
             pll_usb_dev,
-            xosc.operating_frequency().into(),
+            xosc.operating_frequency(),
             PLL_USB_48MHZ,
             &mut clocks,
             resets,
@@ -187,7 +187,7 @@ impl Hardware {
 
     pub fn draw(&mut self, func: impl FnOnce(&mut Display)) {
         if self.idle.check_idle(&mut self.input) {
-            self.idle.enter_idle(&mut self.display);
+            self.idle.enter_idle(&mut self.display, &mut self.delay);
         }
         self.display.draw(func);
     }

@@ -247,7 +247,7 @@ fn fire_shot(
                     continue;
                 }
                 terrain[point.x as usize] =
-                    core::cmp::min(terrain[point.x as usize], HEIGHT as i32 - point.y as i32);
+                    core::cmp::min(terrain[point.x as usize], HEIGHT as i32 - point.y);
             }
 
             let other_p = F32x2 {

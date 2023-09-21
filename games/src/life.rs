@@ -163,7 +163,13 @@ fn update(prev_board: &Board, x: usize, y: usize) -> bool {
     for dx in -1..=1 {
         for dy in -1..=1 {
             if dx != 0 || dy != 0 {
-                count += prev_board.get(x + dx as usize, y + dy as usize) as i32
+                let x2 = x as i32 + dx;
+                let y2 = y as i32 + dy;
+                if x2 >= 0 && y2 >= 0 {
+                    let prev =
+                        prev_board.get(x2.try_into().unwrap(), y2.try_into().unwrap()) as i32;
+                    count += prev;
+                }
             }
         }
     }

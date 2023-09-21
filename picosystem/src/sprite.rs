@@ -49,7 +49,7 @@ impl ImageDrawable for Sprite<'_> {
             {
                 let start_index = area.top_left.x as usize + (y * self.size.width as i32) as usize;
                 let end_index = start_index + area.size.width as usize;
-                for (x, p) in (&self.data[start_index..end_index]).iter().enumerate() {
+                for (x, p) in self.data[start_index..end_index].iter().enumerate() {
                     if *p != transparent_color {
                         let pixels = [Pixel(
                             Point::new(x as i32, iy as i32),
