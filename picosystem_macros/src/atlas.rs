@@ -1,3 +1,5 @@
+use std::env;
+use std::path::PathBuf;
 use image::io::Reader as ImageReader;
 use image::GenericImageView;
 use proc_macro::TokenStream;
@@ -35,10 +37,14 @@ pub fn atlas(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as Atlas);
     let tile_size = tile_size.base10_parse::<u32>().unwrap();
     assert_eq!(tile_size as usize, TILE_SIZE);
-    let img = ImageReader::open(path.value())
-        .expect(&format!("Could not load image {:?}", &path))
+    let mut fullpath = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    fullpath.pop();
+    fullpath.push(path.value());
+    let pathstr = fullpath.to_str().unwrap();
+    let img = ImageReader::open(&fullpath)
+        .expect(&format!("Could not load image {:?}", &pathstr))
         .decode()
-        .expect(&format!("Could not decode image {:?}", &path))
+        .expect(&format!("Could not decode image {:?}", &pathstr))
         .into_rgba8();
 
     let mut tile_index = 0;
@@ -88,11 +94,8 @@ pub fn atlas(input: TokenStream) -> TokenStream {
                 r#"
         pub fn {}{}() -> &'static picosystem::tile::Tile {{
             static COMPRESSION_RATIO: u32 = {};
-            #[link_section = ".static_rodata"]
             static DATA: [u16; {}] = {:?};
-            #[link_section = ".static_rodata"]
             static MASK: [u32; {}] = {:?};
-            #[link_section = ".static_rodata"]
             static TILE: picosystem::tile::Tile = picosystem::tile::Tile {{
                 data: &DATA,
                 mask: &MASK,

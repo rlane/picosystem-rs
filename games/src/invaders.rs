@@ -59,7 +59,7 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
     let mut enemies: Vec<Entity, 10> = Vec::new();
     let mut tick = 0;
     let mut score = 0;
-    let mut enemy_countdown = 0;
+    let mut enemy_countdown: u32 = 0;
     let mut sound = Sound::Silent;
     let screen_bounding_box =
         Rectangle::new(Point::new(0, 0), Size::new(WIDTH as u32, HEIGHT as u32));
@@ -80,17 +80,16 @@ pub fn main(hw: &mut hardware::Hardware) -> ! {
             player.p.y += speed;
         }
         if hw.input.button_a.is_pressed() {
-            let _ = lasers.push(Entity {
+            let item = Entity {
                 p: player.p,
                 size: laser_img.bounding_box().size,
                 dead: false,
-            });
+            };
+            let _ = lasers.push(item);
             sound = Sound::LaserFired { start_tick: tick };
         }
-
-        if enemy_countdown > 0 {
-            enemy_countdown -= 1;
-        }
+        
+        enemy_countdown = enemy_countdown.saturating_sub(1);
         if enemy_countdown == 0 {
             let margin = 30;
             let x = rng.rand_range(margin..(WIDTH as u32 - margin));
@@ -256,7 +255,15 @@ impl Particles {
     }
 
     fn rand16(&mut self, min: i16, max: i16) -> i16 {
-        self.rng.rand_range((min as u32)..(max as u32)) as i16
+        if min >= 0 && max >= 0 {
+            self.rng.rand_range((min as u32)..(max as u32)) as i16
+        } else {
+            let maxadjust = if max < 0 { -max } else { 0 };
+            let minadjust = if min < 0 { -min } else { 0 };
+            let result = self.rng.rand_range(((min + minadjust + maxadjust) as u32)
+            ..((max + minadjust + maxadjust) as u32));
+            result as i16 - maxadjust - minadjust
+        }
     }
 
     fn add_explosion(&mut self, p: I16x2) {

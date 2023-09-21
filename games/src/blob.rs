@@ -493,8 +493,8 @@ fn make_level(level: usize) -> Vec<Wall, 64> {
                     .push(Wall {
                         bounding_box: BoundingBox::new(
                             I32x2 {
-                                x: x as i32 * WALL_SIZE,
-                                y: y as i32 * WALL_SIZE,
+                                x: x * WALL_SIZE,
+                                y: y * WALL_SIZE,
                             },
                             I32x2 {
                                 x: WALL_SIZE,

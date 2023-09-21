@@ -11,7 +11,6 @@ use embedded_graphics::{
 use embedded_hal::blocking::delay::DelayUs;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use embedded_hal::spi::MODE_3;
-use embedded_time::rate::*;
 use hal::pac;
 use hal::spi::Spi;
 use log::info;
@@ -20,6 +19,7 @@ use rp2040_hal::gpio::dynpin::DynFunction;
 use rp2040_hal::gpio::dynpin::DynPin;
 use rp2040_hal::gpio::dynpin::DynPinMode;
 use st7789::{TearingEffect, ST7789};
+use fugit::RateExtU32;
 
 pub const WIDTH: usize = 240;
 pub const HEIGHT: usize = 240;
@@ -30,16 +30,27 @@ pub fn framebuffer() -> &'static mut [u16; WIDTH * HEIGHT] {
     unsafe { &mut FRAMEBUFFER }
 }
 
-pub type RealDisplay =
-    ST7789<SPIInterfaceNoCS<Spi<hal::spi::Enabled, pac::SPI0, 8>, DynPin>, DynPin>;
+pub type RealDisplay = st7789::ST7789<SPIInterfaceNoCS<Spi<hal::spi::Enabled, pac::SPI0, 8>, DynPin>, DynPin, DynPin>;
 
 pub struct Display {
     st7789: RealDisplay,
-    backlight_pin: DynPin,
     lcd_vsync_pin: DynPin,
     dma_channel: DmaChannel,
     last_vsync_time: u32,
 }
+
+
+/*
+    let spi_screen =
+        Spi::<_, _, 8>::new(hw.SPI0).init( p.RESETS, 125u32.MHz(), 16u32.MHz(), &MODE_0);
+    let spii_screen = SPIInterface::new(spi_screen, hw.lcd_dc_pin, hw.lcd_cs_pin);
+    let mut display = mipidsi::Builder::st7789(spii_screen)
+        .with_display_size(240, 240)
+        .with_framebuffer_size(240, 240)
+        .init(&mut delay, Some(DummyPin))
+        .unwrap();
+
+*/
 
 impl Display {
     #[allow(clippy::too_many_arguments)]
@@ -71,31 +82,31 @@ impl Display {
         lcd_reset_pin.into_push_pull_output();
         let spi = Spi::<_, _, 8>::new(spi_device).init(
             resets,
-            125_000_000u32.Hz(),
+            125.MHz(),
             62_500_000u32.Hz(),
             &MODE_3,
         );
         let di = SPIInterfaceNoCS::new(spi, lcd_dc_pin);
-        let mut st7789 = ST7789::new(di, lcd_reset_pin, WIDTH as u16, HEIGHT as u16);
+        let mut st7789 = ST7789::new(di, Some(lcd_reset_pin), Some(backlight_pin), WIDTH as u16, HEIGHT as u16);
         st7789.init(delay_source).unwrap();
         st7789.set_tearing_effect(TearingEffect::Vertical).unwrap();
         let mut display = Display {
             st7789,
-            backlight_pin,
             dma_channel,
             lcd_vsync_pin,
             last_vsync_time: 0,
         };
         // A single clear occasionally fails to clear the screen.
         for _ in 0..2 {
-            let colors =
-                core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
+            // let colors =
+                // core::iter::repeat(RawU16::from(Rgb565::BLACK).into_inner()).take(WIDTH * HEIGHT);
+            let colors = core::iter::repeat(Rgb565::BLACK.into_storage()).take(WIDTH * HEIGHT);
             display
                 .st7789
                 .set_pixels(0, 0, (WIDTH - 1) as u16, (HEIGHT - 1) as u16, colors)
                 .unwrap();
         }
-        display.enable_backlight();
+        display.enable_backlight(delay_source);
         display
     }
 
@@ -128,18 +139,19 @@ impl Display {
         self.start_flush();
     }
 
-    pub fn enable_backlight(&mut self) {
-        self.backlight_pin.set_high().unwrap();
+    pub fn enable_backlight(&mut self, delay_source: &mut impl DelayUs<u32>) {
+        self.st7789.set_backlight(st7789::BacklightState::On, delay_source).unwrap();
     }
-
-    pub fn disable_backlight(&mut self) {
-        self.backlight_pin.set_low().unwrap();
+    
+    pub fn disable_backlight(&mut self, delay_source: &mut impl DelayUs<u32>) {
+        self.st7789.set_backlight(st7789::BacklightState::Off, delay_source).unwrap();
     }
 
     pub fn wait_for_vsync(&mut self) {
-        if self.last_vsync_time != 0 && time::time_us() - self.last_vsync_time > 16_000 {
+/*         if self.last_vsync_time != 0 && time::time_us() - self.last_vsync_time > 16_000 {
             log::info!("Missed vsync");
-        }
+        } */
+        // log::info!("frametime {0}",time::time_us() - self.last_vsync_time);
         while self.lcd_vsync_pin.is_high().unwrap() {}
         while self.lcd_vsync_pin.is_low().unwrap() {}
         self.last_vsync_time = time::time_us();
@@ -162,15 +174,15 @@ impl DrawTarget for Display {
         I: IntoIterator<Item = Pixel<Self::Color>>,
     {
         const M: u32 = WIDTH as u32 - 1;
+        const N: u32 = HEIGHT as u32 - 1;
         let fb = framebuffer();
         for Pixel(coord, color) in pixels.into_iter() {
-            if let Ok((x @ 0..=M, y @ 0..=M)) = coord.try_into() {
+            if let Ok((x @ 0..=M, y @ 0..=N)) = coord.try_into() {
                 let index: u32 = x + y * WIDTH as u32;
                 let color = RawU16::from(color).into_inner();
                 fb[index as usize] = color.to_be();
             }
         }
-
         Ok(())
     }
 
@@ -202,7 +214,7 @@ impl DrawTarget for Display {
 
             let mut index = clipped_area.top_left.x + (clipped_area.top_left.y + y) * WIDTH as i32;
             for _ in 0..clipped_area.size.width {
-                let color = colors.next().unwrap();
+                let color = colors.next().unwrap_or(Rgb565::RED);
                 let color = RawU16::from(color).into_inner();
                 fb[index as usize] = color.to_be();
                 index += 1;
@@ -235,6 +247,10 @@ impl DrawTarget for Display {
             );
         }
         Ok(())
+    }
+
+    fn fill_solid(&mut self, area: &Rectangle, color: Self::Color) -> Result<(), Self::Error> {
+        self.fill_contiguous(area, core::iter::repeat(color))
     }
 }
 

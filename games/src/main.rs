@@ -7,6 +7,7 @@ mod hangman;
 mod invaders;
 mod life;
 mod mathemagic;
+mod music;
 mod maze;
 mod memory;
 mod system;
@@ -55,7 +56,6 @@ fn main() -> ! {
             name: "life",
             main: life::main,
         },
-        #[cfg(feature = "music")]
         MenuItem {
             name: "music",
             main: music::main,

@@ -1,3 +1,5 @@
+use cortex_m::delay::Delay;
+
 use crate::{display, input, interrupts, time};
 
 const IDLE_TIME_US: u64 = 300_000_000;
@@ -24,8 +26,8 @@ impl Idle {
         false
     }
 
-    pub fn enter_idle(&mut self, display: &mut display::Display) {
-        display.disable_backlight();
+    pub fn enter_idle(&mut self, display: &mut display::Display, delay: &mut Delay) {
+        display.disable_backlight(delay);
         unsafe {
             let inputs = 16..24;
             for gpio in inputs.clone() {
@@ -39,7 +41,7 @@ impl Idle {
                 interrupts::disable_gpio_interrupt(gpio, interrupts::GpioEvent::EdgeLow);
             }
         }
-        display.enable_backlight();
+        display.enable_backlight(delay);
         self.last_active_time = time::time_us64();
     }
 }

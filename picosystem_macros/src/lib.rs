@@ -1,6 +1,7 @@
 mod atlas;
 mod map;
-
+use std::env;
+use std::path::PathBuf;
 use image::io::Reader as ImageReader;
 use proc_macro::TokenStream;
 use syn::parse::{Parse, ParseStream, Result};
@@ -35,10 +36,14 @@ pub fn sprite(input: TokenStream) -> TokenStream {
         width,
     } = parse_macro_input!(input as Sprite);
     let width = width.base10_parse::<u32>().unwrap();
-    let img = ImageReader::open(path.value())
-        .expect(&format!("Could not load image {:?}", &path))
+    let mut fullpath = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    fullpath.pop();
+    fullpath.push(path.value());
+    let pathstr = fullpath.to_str().unwrap();
+    let img = ImageReader::open(&fullpath)
+        .expect(&format!("Could not load {:?}", &pathstr))
         .decode()
-        .expect(&format!("Could not decode image {:?}", &path))
+        .expect(&format!("Could not decode image {:?}", &pathstr))
         .resize(width, 16384, image::imageops::FilterType::Triangle)
         .into_rgba8();
     let transparent_color = 0;
@@ -63,9 +68,7 @@ pub fn sprite(input: TokenStream) -> TokenStream {
     code.push_str(&format!(
         r#"
         pub fn {}() -> &'static picosystem::sprite::Sprite<'static> {{
-            #[link_section = ".static_rodata"]
             static DATA: [u16; {}] = {:?};
-            #[link_section = ".static_rodata"]
             static SPRITE: picosystem::sprite::Sprite<'static> = picosystem::sprite::Sprite {{
                 size: embedded_graphics::geometry::Size::new({}, {}),
                 transparent_color: {:?},

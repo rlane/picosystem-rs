@@ -138,7 +138,7 @@ mod device {
                     clipped_dst.size.width / 2,
                 );
                 src_ptr = src_ptr.add(TILE_SIZE as usize);
-                dst_ptr = dst_ptr.add(WIDTH as usize);
+                dst_ptr = dst_ptr.add(WIDTH);
             }
         }
 
@@ -197,7 +197,7 @@ mod device {
                     x += n;
                 }
                 src_ptr = src_ptr.add(TILE_SIZE as usize - x as usize);
-                dst_ptr = dst_ptr.add(WIDTH as usize - x as usize);
+                dst_ptr = dst_ptr.add(WIDTH - x as usize);
                 mask_ptr = mask_ptr.add(1);
             }
             dma_channel.wait();
@@ -259,7 +259,7 @@ mod device {
         loop {
             let progress = display.flush_progress();
             let safe_y = (progress as i32 - WIDTH as i32 + 1) / WIDTH as i32;
-            if safe_y - drawn_y < 32 && progress < (WIDTH * HEIGHT) as usize {
+            if safe_y - drawn_y < 32 && progress < (WIDTH * HEIGHT) {
                 continue;
             } else if safe_y - drawn_y > 64 {
                 slow_draw = true;
